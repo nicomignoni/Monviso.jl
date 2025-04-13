@@ -4,14 +4,14 @@ using JuMP
 
 export proj, pg, fbf
 
-const DESC_TYPE = Tuple{Vararg{Function}}
+const DESCR_TYPE = Tuple{Vararg{Function}}
 
 proj_variable(model::Model, x::AbstractVector) = @variable(model, [1:length(x)])
 
 """
 The projection operator closure.
 """
-function proj(x::AbstractVector, description::DESC_TYPE, optimizer; optimize_kwargs...)
+function proj(x::AbstractVector, descr::DESCR_TYPE, optimizer; optimize_kwargs...)
     model = Model(optimizer)
 
     # Create main variable and slack variable for second-order cone constraint (l2-norm)
@@ -20,7 +20,7 @@ function proj(x::AbstractVector, description::DESC_TYPE, optimizer; optimize_kwa
     @variable(model, t)
 
     # Create the constraints, including the l2-norm epigraphic refomulation
-    for f in description
+    for f in descr
         r = f(model, _z)
         r isa Union{VariableRef,ConstraintRef} ||
             error(
@@ -42,16 +42,16 @@ end
 """
 The projected gradient closure. 
 """
-function pg(x::AbstractVector, F::Function, description::DESC_TYPE, optimizer; optimize_kwargs...)
-    Π = proj(x::AbstractVector, description::DESC_TYPE, optimizer; optimize_kwargs...)
+function pg(x::AbstractVector, F::Function, descr::DESCR_TYPE, optimizer; optimize_kwargs...)
+    Π = proj(x::AbstractVector, descr::DESCR_TYPE, optimizer; optimize_kwargs...)
     return (x::AbstractVector, χ::Real) -> Π(x .- χ * F(x))
 end
 
 """
 The forward-backward-forward closure.
 """
-function fbf(x::AbstractVector, F::Function, description::DESC_TYPE, optimizer; optimize_kwargs...)
-    Π = proj(x::AbstractVector, description::DESC_TYPE, optimizer; optimize_kwargs...)
+function fbf(x::AbstractVector, F::Function, descr::DESCR_TYPE, optimizer; optimize_kwargs...)
+    Π = proj(x::AbstractVector, descr::DESCR_TYPE, optimizer; optimize_kwargs...)
     return (x::AbstractVector, χ::Real) -> begin
         Fx = F(x)
         x̄ = Π(x .- χ * Fx)
