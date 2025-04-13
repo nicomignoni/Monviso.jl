@@ -1,0 +1,17 @@
+name = "Monviso"
+uuid = "1eb86b62-9073-48e6-9f04-fc5a45567986"
+authors = ["Nicola Mignoni"]
+version = "0.1.0"
+
+[deps]
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+
+[weakdeps]
+NamedVectorizations = "93c25245-795c-4f39-9b17-d28542eb77a0"
+
+[extensions]
+MonvisoNamedVectorizationsExt = "NamedVectorizations"
+
+[compat]
+JuMP = "1.25.0"
+NamedVectorizations = "0.1.0"
