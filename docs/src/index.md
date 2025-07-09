@@ -2,6 +2,13 @@
 
 *Solving monotone variational inequalities in Julia*
 
+## Installation
+Install `Monviso.jl` from the Julia REPL
+
+```julia
+add ] https://github.com/nicomignoni/Monviso.jl.git
+```
+
 ## Quickstart
 Let $F(\mathbf{x}) = \mathbf{H} \mathbf{x}$ for some $\mathbf{H} \succ 0$, $g(\mathbf{x}) = \|\mathbf{x}\|_1$, and $\mathcal{S} = \{\mathbf{x} \in \mathbb{R}^n : \mathbf{A} \mathbf{x} \leq \mathbf{b}\}$, for some $\mathbf{A} \in \mathbb{R}^{m \times n}$ and $\mathbf{b} \in \mathbb{R}^n$. It is straightforward to verify that $F(\cdot)$ is strongly monotone with $\mu = \lambda_{\min}(\mathbf{H})$ and Lipschitz with $L = \|\mathbf{H}\|_2$. The solution of the VI in can be implemented using `Monviso.jl` as follows
 
