@@ -14,6 +14,7 @@ H = rand(n, n)
 A = rand(m, n)
 b = rand(m)
 
+# Make H positive semidefinite
 H =  H * H'
 
 # Lipschitz and strong monotonicity constants
