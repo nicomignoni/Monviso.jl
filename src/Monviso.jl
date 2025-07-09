@@ -8,8 +8,28 @@ export proj, proj_gradient, forward_backward_forward
 const SetType = Tuple{Vararg{Function}}
 const default_set = ((model, x) -> nothing,)
 
+# Common arguments and keywords to doc
+const DOCS_OPTIMIZER = "- `optimizer` - the optimizer used to solve the projection." 
+const DOCS_F = "- `F::Function` - a function of the form `(x) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} \\to \\mathbb{R}^n \\to \\mathbb{R}^n``."
+const DOCS_VAR = "- `var::Function` - a function of the type `(model) -> AbstractVector{VariableRef}`, returning a container of `JuMP` variables."
+const DOCS_SET = "- `set::SetType=default_set` - a `Tuple` of functions of the type `(model, x) -> @constraint(model, expr(x))`, describing the onto which project." 
+const DOCS_NORM_CONE = "- `norm_cone::DataType=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
+const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::Union{Nothing, Function}` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
+const DOCS_SILENT = "- `silent::Bool=true` - verbosity level for the projection solver."
+
 """
+    proj(optimizer, var::Function, set::SetType=default_set; norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+
 The projection operator closure.
+
+# Arguments
+$DOCS_OPTIMIZER
+$DOCS_VAR
+$DOCS_SET
+
+# Keywords
+$DOCS_NORM_CONE
+$DOCS_SILENT
 """
 function proj(
     optimizer,
@@ -21,7 +41,7 @@ function proj(
     model = Model(optimizer)
     if silent; set_silent(model); end
 
-    # Create main variable and slack variable for second-order cone constraint (l2-norm)
+    # Create main variable (_z) and parameter (_x)
     _z = var(model)
     _x = @variable(model, [1:length(_z)])
 
@@ -48,7 +68,20 @@ function get_projection_func(optimizer, var, set, analytical_proj, norm_cone, si
 end
 
 """
+    proj_gradient(optimizer, F::Function, var::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+
 The projected gradient closure. 
+
+# Arguments
+$DOCS_OPTIMIZER
+$DOCS_F
+$DOCS_VAR
+$DOCS_SET
+
+# Keywords
+$DOCS_ANALYTICAL_PROJ
+$DOCS_NORM_CONE
+$DOCS_SILENT
 """
 function proj_gradient(
     optimizer,
@@ -64,7 +97,20 @@ function proj_gradient(
 end
 
 """
+    forward_backward_forward(optimizer, F::Function, var::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+
 The forward-backward-forward closure.
+
+# Arguments
+$DOCS_OPTIMIZER
+$DOCS_F
+$DOCS_VAR
+$DOCS_SET
+
+# Keywords
+$DOCS_ANALYTICAL_PROJ
+$DOCS_NORM_CONE
+$DOCS_SILENT
 """
 function forward_backward_forward(
     optimizer,
