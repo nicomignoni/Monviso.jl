@@ -2,13 +2,13 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="150.00031"
-   height="116.949"
-   viewBox="0 0 39.687579 30.942755"
+   width="60"
+   height="46.779602"
+   viewBox="0 0 15.874999 12.377102"
    version="1.1"
    id="svg5"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
-   sodipodi:docname="monviso-dark.svg"
+   sodipodi:docname="logo.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -24,9 +24,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="2.9897026"
-     inkscape:cx="86.29621"
-     inkscape:cy="63.216991"
+     inkscape:zoom="16.912312"
+     inkscape:cx="36.482298"
+     inkscape:cy="19.689798"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -101,7 +101,7 @@
      transform="translate(-140.96443,-65.675959)">
     <g
        id="g6408"
-       transform="translate(0.03986409,0.03107756)">
+       transform="matrix(0.39940464,0,0,0.39940464,84.690303,39.4663)">
       <path
          style="fill:none;fill-opacity:1;stroke:#389826;stroke-width:5.55735;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#TriangleStart-6)"
          d="m 162.75402,72.510859 -8.86152,21.0951"
