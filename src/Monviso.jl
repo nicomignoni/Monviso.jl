@@ -10,7 +10,7 @@ const default_set = ((model, x) -> nothing,)
 
 # Common arguments and keywords to doc
 const DOCS_OPTIMIZER = "- `optimizer` - the optimizer used to solve the projection." 
-const DOCS_F = "- `F::Function` - a function of the form `(x) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``."
+const DOCS_F = "- `F::Function` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
 const DOCS_VAR = "- `var::Function` - a function of the type `(model) -> AbstractVector{VariableRef}`, returning a container of `JuMP` variables."
 const DOCS_SET = "- `set::SetType=default_set` - a `Tuple` of functions of the type `(model, x) -> @constraint(model, expr(x))`, describing the onto which project." 
 const DOCS_NORM_CONE = "- `norm_cone::DataType=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
@@ -105,7 +105,7 @@ function proj_gradient(
     silent::Bool=true
 )
     Π = get_projection_func(optimizer, var, set, analytical_proj, norm_cone, silent)
-    return (x::AbstractVector, χ::Real) -> Π(x .- χ * F(x))
+    return (x::AbstractVector, χ::Real, params...) -> Π(x .- χ * F(x, params...))
 end
 
 """
@@ -149,9 +149,9 @@ function forward_backward_forward(
     silent::Bool=true
 )
     Π = get_projection_func(optimizer, var, set, analytical_proj, norm_cone, silent)
-    return (x::AbstractVector, χ::Real) -> begin
-        x⁺ = Π(x .- χ * F(x))
-        x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x))
+    return (x::AbstractVector, χ::Real, params...) -> begin
+        x⁺ = Π(x .- χ * F(x, params...))
+        x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x, params...))
     end
 end
 
