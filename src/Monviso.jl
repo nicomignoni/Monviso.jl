@@ -5,18 +5,15 @@ using MathOptInterface: MathOptInterface as MOI
 
 export proj, proj_gradient, forward_backward_forward
 
-const default_set = ((model, x) -> nothing,)
 const default_eval_func = (x⁺, x) -> norm(x - x⁺)
 
 # Common arguments and keywords to doc
-const DOCS_OPTIMIZER = "- `optimizer` - the optimizer used to solve the projection." 
-const DOCS_F = "- `F::Function` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
-const DOCS_VAR = "- `x_func` - a function of the type `(model) -> AbstractVector{VariableRef}`, returning a container of `JuMP` variables."
-const DOCS_SET = "- `set=default_set` - a `Tuple` of functions of the type `(model, x) -> @constraint(model, expr(x))`, describing the onto which project." 
+const DOCS_F = "- `F` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
+const DOCS_Y = "- `y::AbstractVector{VariableRef}` - the container of `JuMP.VariableRef` associated to `model`, i.e., ``\\mathbf{y}``."
+const DOCS_MODEL = "- `model::Model` - the `JuMP.Model` describing the projection set ``\\mathcal{S}``." 
 const DOCS_EVAL_FUNC = "- `eval_func::Function=default_eval_func` - a function of the form `(x⁺, x=nothing) -> Any`, used to evaluate the state of convergence of the iterate, where `x⁺` and `x` are the new and previous iteration's results." 
 const DOCS_NORM_CONE = "- `norm_cone::DataType=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
-const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::Union{Nothing, Function}=nothing` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
-const DOCS_SILENT = "- `silent::Bool=true` - verbosity level for the projection solver."
+const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::=nothing` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
 
 """
     proj(optimizer, x_func::Function, set::SetType=default_set; norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
@@ -24,48 +21,39 @@ const DOCS_SILENT = "- `silent::Bool=true` - verbosity level for the projection 
 The projection operator closure.
 
 # Arguments
-$DOCS_OPTIMIZER
-$DOCS_VAR
-$DOCS_SET
+$DOCS_Y
+$DOCS_MODEL
 
 # Keywords
 $DOCS_NORM_CONE
-$DOCS_SILENT
 """
 function proj(
-    optimizer,
-    x_func,
-    set=default_set;
+    y::AbstractVector{VariableRef},
+    model::Model;
     norm_cone::DataType=MOI.SecondOrderCone,
-    silent::Bool=true
 )
-    model = Model(optimizer)
-    if silent; set_silent(model); end
-
-    # Create main variable (_z) and parameter (_x)
-    _z = x_func(model)
-    _x = @variable(model, [1:length(_z)])
-
-    # Create the constraints set 
-    for func in set
-        func(model, _z)
-    end 
+    _x = @variable(model, [1:length(y)])
 
     # Objective norm
-    @variable(model, t)
-    @constraint(model, [t; 0.5(_x .- _z)] in norm_cone(1 + length(_z)))
+    t = @variable(model)
+    @constraint(model, [t; 0.5(_x .- y)] in norm_cone(1 + length(y)))
     @objective(model, Min, t)
 
     return (x::AbstractVector) -> begin
         fix.(_x, x)
         optimize!(model)
-        value.(_z)
+        value.(y)
     end
 end
 
 # Creates the projection function depending on whether an analytical projection is provided 
-function get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
-    return analytical_proj === nothing ? proj(optimizer, x_func, set; norm_cone=norm_cone, silent=silent) : analytical_proj
+function get_projection_func(
+    x::AbstractVector{VariableRef},
+    model::Model, 
+    analytical_proj, 
+    norm_cone
+)
+    return analytical_proj === nothing ? proj(x, model; norm_cone=norm_cone) : analytical_proj
 end
 
 """
@@ -83,31 +71,27 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of PG is guaranteed for Lipschitz strongly monotone operators, with monotone constant ``\\mu > 0`` and Lipshitz constants ``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
 
 # Arguments
-$DOCS_OPTIMIZER
 $DOCS_F
-$DOCS_VAR
-$DOCS_SET
+$DOCS_Y
+$DOCS_MODEL
 
 # Keywords
 $DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
-$DOCS_SILENT
 
 # References
 [^1] Nemirovskij, A. S., & Yudin, D. B. (1983). Problem complexity and method efficiency in optimization.
 """
 function proj_gradient(
-    optimizer,
     F,
-    x_func,
-    set=default_set;
+    y::AbstractVector{VariableRef},
+    model::Model;
     eval_func=default_eval_func,
     analytical_proj=nothing,
-    norm_cone::DataType=MOI.SecondOrderCone,
-    silent::Bool=true
+    norm_cone::DataType=MOI.SecondOrderCone
 )
-    Π = get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
+    Π = get_projection_func(y, model, analytical_proj, norm_cone)
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
 
@@ -133,30 +117,27 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the FBF algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
 
 # Arguments
-$DOCS_OPTIMIZER
 $DOCS_F
-$DOCS_VAR
-$DOCS_SET
+$DOCS_Y
+$DOCS_MODEL
 
 # Keywords
 $DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
-$DOCS_SILENT
 
 # References
 [^1] Tseng, P. (2000). A modified forward-backward splitting method for maximal monotone mappings. SIAM Journal on Control and Optimization, 38(2), 431-446.
 """
 function forward_backward_forward(
-    optimizer,
     F,
-    x_func,
-    set=default_set;
+    y::AbstractVector{VariableRef},
+    model::Model;
+    eval_func=default_eval_func,
     analytical_proj=nothing,
-    norm_cone::DataType=MOI.SecondOrderCone,
-    silent::Bool=true
+    norm_cone::DataType=MOI.SecondOrderCone
 )
-    Π = get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
+    Π = get_projection_func(y, model, analytical_proj, norm_cone)
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
         x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x, params...))

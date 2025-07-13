@@ -5,63 +5,53 @@ n, m = 30, 20
 A = rand(m, n)
 b = rand(m)
 
-vector_set = (
-    (model, x) -> @constraint(model, x .>= 0),
-    (model, x) -> @constraint(model, A * x .+ b .<= 0)
-)
+# Model with Vectors
+x_vector = 5rand(n)
+model_vector = Model(Clarabel.Optimizer)
+set_silent(model_vector)
+y_vector = @variable(model_vector, [1:n])
+@constraint(model_vector, y_vector .>= 0),
+@constraint(model_vector, A * y_vector .+ b .<= 0)
 
-componentvector_set = (
-    (model, x) -> @constraint(model, x .>= 0),
-    (model, x) -> @constraint(model, A * x .+ b .<= 0),
-    (model, x) -> @constraint(model, x.x .+ x.z .- sum(x.y) .>= 0)
-)
+# Model with ComponentVectors
+x_cv = ComponentVector(x=rand(9), y=rand(4, 5), z=5) 
+model_cv = Model(Clarabel.Optimizer)
+set_silent(model_cv)
+y_cv = ComponentVector(@variable(model_cv, [1:length(x_cv)]), getaxes(x_cv))
+@constraint(model_cv, y_cv .>= 0),
+@constraint(model_cv, A * y_cv .+ b .<= 0),
+@constraint(model_cv, y_cv.x .+ y_cv.z .- sum(y_cv.y) .>= 0)
 
 @testset "Projection, Vector" begin
-    x = 5rand(n)
-    x_func(model) = @variable(model, [1:n])
-
     # With a constraint set
-    Π = proj(Clarabel.Optimizer, x_func, vector_set)
-    @test Π(x) isa Vector 
-
-    # Unconstrained
-    Π = proj(Clarabel.Optimizer, x_func)
-    @test Π(x) isa Vector 
+    Π = proj(y_vector, model_vector)
+    @test Π(x_vector) isa Vector 
 
     # Differnent norm
-    Π = proj(Clarabel.Optimizer, x_func, norm_cone=MOI.NormOneCone)
-    @test Π(x) isa Vector
+    Π = proj(y_vector, model_vector, norm_cone=MOI.NormOneCone)
+    @test Π(x_vector) isa Vector
 end
 
 @testset "Projection, ComponentVectors" begin
-    x = ComponentVector(x=rand(9), y=rand(4, 5), z=5) 
-    x_func(model) = ComponentVector(@variable(model, [1:length(x)]), getaxes(x))
 
     # With a constraint set
-    Π = proj(Clarabel.Optimizer, x_func, componentvector_set)
-    @test Π(x) isa ComponentVector
-
-    # Unconstrained
-    Π = proj(Clarabel.Optimizer, x_func)
-    @test Π(x) isa ComponentVector 
+    Π = proj(y_cv, model_cv)
+    @test Π(x_cv) isa ComponentVector
 
     # Differnent norm
-    Π = proj(Clarabel.Optimizer, x_func, norm_cone=MOI.NormOneCone)
-    @test Π(x) isa ComponentVector
+    Π = proj(y_cv, model_cv, norm_cone=MOI.NormOneCone)
+    @test Π(x_cv) isa ComponentVector
 end
 
 @testset "Projected gradient, Vector" begin
-    x = 5rand(n)
-    x_func(model) = @variable(model, [1:n])
-
     H = rand(n, n)
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    pg = proj_gradient(Clarabel.Optimizer, F, x_func, vector_set)
+    pg = proj_gradient(F, y_vector, model_vector)
     χ = 0.01
     @test begin 
-        x, _ = pg(x, χ) 
+        x, _ = pg(x_vector, χ) 
         x isa Vector  
     end
 end

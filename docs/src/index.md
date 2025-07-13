@@ -28,16 +28,17 @@ H =  H * H'
 L = norm(H)
 μ = eigvals(H) |> minimum
 
-# Define F, g, and S
-var_func = (model) -> @variable(model, [1:n])
+# Define the F mapping
 F(x) = H * x
-set = (
-    (model, x) -> @constraint(model, A * x <= b),
-    (model, x) -> @constraint(model, x >= 0)
-)
+
+# Define a JuMP.Model
+model = Model(Clarabel.Optimizer)
+y = @variable(model, [1:n])
+@constraint(model, A * y <= b),
+@constraint(model, y >= 0)
 
 # Instantitate the projected gradient method (`pg`) 
-pg = proj_gradient(Clarabel.Optimizer, F, var_func, set)
+pg = proj_gradient(F, y, model)
 
 # Define the initial point, step-size, and max number of iterations
 x = rand(n) .+ 4
