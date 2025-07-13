@@ -53,6 +53,17 @@ end
     @test pg(x_vector, χ) isa Vector  
 end
 
+@testset "Forward-backward-forward, Vector" begin
+    H = rand(n, n)
+    H = H' * H # make positive semidefinite
+    F(x) = H * x
+
+    fbf = forward_backward_forward(F, y_vector, model_vector)
+    χ = 0.01
+    @test fbf(x_vector, χ) isa Vector  
+end
+
+
 #=x = NV(a=rand(2, 3, 4), b=rand(4))=#
 #==#
 #=set = (=#

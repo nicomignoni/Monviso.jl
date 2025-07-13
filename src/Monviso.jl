@@ -5,8 +5,6 @@ using MathOptInterface: MathOptInterface as MOI
 
 export proj, proj_gradient, forward_backward_forward
 
-const default_eval_func = (x⁺, x) -> norm(x - x⁺)
-
 # Common arguments and keywords to doc
 const DOCS_F = "- `F` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
 const DOCS_Y = "- `y::AbstractVector{VariableRef}` - the container of `JuMP.VariableRef` associated to `model`, i.e., ``\\mathbf{y}``."
@@ -133,7 +131,7 @@ function forward_backward_forward(
     Π = get_projection_func(y, model, analytical_proj, norm_cone)
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
-        x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x, params...))
+        x⁺⁺ = x⁺ .- χ * (F(x⁺, params...) .- F(x, params...))
     end
 end
 
