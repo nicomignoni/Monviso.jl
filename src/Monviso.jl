@@ -1,24 +1,25 @@
 module Monviso
 
-using JuMP
+using JuMP, LinearAlgebra
 using MathOptInterface: MathOptInterface as MOI
 
 export proj, proj_gradient, forward_backward_forward
 
-const SetType = Tuple{Vararg{Function}}
 const default_set = ((model, x) -> nothing,)
+const default_eval_func = (x⁺, x) -> norm(x - x⁺)
 
 # Common arguments and keywords to doc
 const DOCS_OPTIMIZER = "- `optimizer` - the optimizer used to solve the projection." 
 const DOCS_F = "- `F::Function` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
-const DOCS_VAR = "- `var::Function` - a function of the type `(model) -> AbstractVector{VariableRef}`, returning a container of `JuMP` variables."
-const DOCS_SET = "- `set::SetType=default_set` - a `Tuple` of functions of the type `(model, x) -> @constraint(model, expr(x))`, describing the onto which project." 
+const DOCS_VAR = "- `x_func` - a function of the type `(model) -> AbstractVector{VariableRef}`, returning a container of `JuMP` variables."
+const DOCS_SET = "- `set=default_set` - a `Tuple` of functions of the type `(model, x) -> @constraint(model, expr(x))`, describing the onto which project." 
+const DOCS_EVAL_FUNC = "- `eval_func::Function=default_eval_func` - a function of the form `(x⁺, x=nothing) -> Any`, used to evaluate the state of convergence of the iterate, where `x⁺` and `x` are the new and previous iteration's results." 
 const DOCS_NORM_CONE = "- `norm_cone::DataType=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
 const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::Union{Nothing, Function}=nothing` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
 const DOCS_SILENT = "- `silent::Bool=true` - verbosity level for the projection solver."
 
 """
-    proj(optimizer, var::Function, set::SetType=default_set; norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+    proj(optimizer, x_func::Function, set::SetType=default_set; norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
 
 The projection operator closure.
 
@@ -33,8 +34,8 @@ $DOCS_SILENT
 """
 function proj(
     optimizer,
-    var::Function,
-    set::SetType=default_set;
+    x_func,
+    set=default_set;
     norm_cone::DataType=MOI.SecondOrderCone,
     silent::Bool=true
 )
@@ -42,7 +43,7 @@ function proj(
     if silent; set_silent(model); end
 
     # Create main variable (_z) and parameter (_x)
-    _z = var(model)
+    _z = x_func(model)
     _x = @variable(model, [1:length(_z)])
 
     # Create the constraints set 
@@ -63,12 +64,12 @@ function proj(
 end
 
 # Creates the projection function depending on whether an analytical projection is provided 
-function get_projection_func(optimizer, var, set, analytical_proj, norm_cone, silent)
-    return analytical_proj === nothing ? proj(optimizer, var, set; norm_cone=norm_cone, silent=silent) : analytical_proj
+function get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
+    return analytical_proj === nothing ? proj(optimizer, x_func, set; norm_cone=norm_cone, silent=silent) : analytical_proj
 end
 
 """
-    proj_gradient(optimizer, F::Function, var::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+    proj_gradient(optimizer, F::Function, x_func::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
 
 The projected gradient closure. 
 
@@ -88,6 +89,7 @@ $DOCS_VAR
 $DOCS_SET
 
 # Keywords
+$DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 $DOCS_SILENT
@@ -97,19 +99,24 @@ $DOCS_SILENT
 """
 function proj_gradient(
     optimizer,
-    F::Function,
-    var::Function,
-    set::SetType=default_set;
-    analytical_proj::Union{Nothing, Function}=nothing,
+    F,
+    x_func,
+    set=default_set;
+    eval_func=default_eval_func,
+    analytical_proj=nothing,
     norm_cone::DataType=MOI.SecondOrderCone,
     silent::Bool=true
 )
-    Π = get_projection_func(optimizer, var, set, analytical_proj, norm_cone, silent)
-    return (x::AbstractVector, χ::Real, params...) -> Π(x .- χ * F(x, params...))
+    Π = get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
+    return (x::AbstractVector, χ::Real, params...) -> begin
+        x⁺ = Π(x .- χ * F(x, params...))
+
+        return x⁺, eval_func(x⁺, x)
+    end
 end
 
 """
-    forward_backward_forward(optimizer, F::Function, var::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
+    forward_backward_forward(optimizer, F::Function, x_func::Function, set::SetType=default_set; analytical_proj::Union{Nothing, Function}=nothing, norm_cone::DataType=MOI.SecondOrderCone, silent::Bool=true)
 
 The forward-backward-forward closure.
 
@@ -119,7 +126,7 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 ```math 
 \\begin{align*}
     \\mathbf{y}_k &= \\text{proj}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi F(\\mathbf{x}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\mathbf{y}_k - \\chi F(\\mathbf{y}_k) + \\chi F(\\mathbf{x}_k)
+    \\mathbf{x}_{k+1} &= \\mathbf{y}_k - \\chi (F(\\mathbf{y}_k) - \\chi F(\\mathbf{x}_k))
 \\end{align*}
 ```
 
@@ -132,6 +139,7 @@ $DOCS_VAR
 $DOCS_SET
 
 # Keywords
+$DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 $DOCS_SILENT
@@ -141,17 +149,19 @@ $DOCS_SILENT
 """
 function forward_backward_forward(
     optimizer,
-    F::Function,
-    var::Function,
-    set::SetType=default_set;
-    analytical_proj::Union{Nothing, Function}=nothing,
+    F,
+    x_func,
+    set=default_set;
+    analytical_proj=nothing,
     norm_cone::DataType=MOI.SecondOrderCone,
     silent::Bool=true
 )
-    Π = get_projection_func(optimizer, var, set, analytical_proj, norm_cone, silent)
+    Π = get_projection_func(optimizer, x_func, set, analytical_proj, norm_cone, silent)
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
         x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x, params...))
+
+        return x⁺⁺, eval_func(x⁺⁺, x)
     end
 end
 
