@@ -50,10 +50,7 @@ end
 
     pg = proj_gradient(F, y_vector, model_vector)
     χ = 0.01
-    @test begin 
-        x, _ = pg(x_vector, χ) 
-        x isa Vector  
-    end
+    @test pg(x_vector, χ) isa Vector  
 end
 
 #=x = NV(a=rand(2, 3, 4), b=rand(4))=#

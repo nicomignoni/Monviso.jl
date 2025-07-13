@@ -11,7 +11,6 @@ const default_eval_func = (x⁺, x) -> norm(x - x⁺)
 const DOCS_F = "- `F` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
 const DOCS_Y = "- `y::AbstractVector{VariableRef}` - the container of `JuMP.VariableRef` associated to `model`, i.e., ``\\mathbf{y}``."
 const DOCS_MODEL = "- `model::Model` - the `JuMP.Model` describing the projection set ``\\mathcal{S}``." 
-const DOCS_EVAL_FUNC = "- `eval_func::Function=default_eval_func` - a function of the form `(x⁺, x=nothing) -> Any`, used to evaluate the state of convergence of the iterate, where `x⁺` and `x` are the new and previous iteration's results." 
 const DOCS_NORM_CONE = "- `norm_cone::DataType=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
 const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::=nothing` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
 
@@ -76,7 +75,6 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
-$DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 
@@ -87,15 +85,12 @@ function proj_gradient(
     F,
     y::AbstractVector{VariableRef},
     model::Model;
-    eval_func=default_eval_func,
     analytical_proj=nothing,
     norm_cone::DataType=MOI.SecondOrderCone
 )
     Π = get_projection_func(y, model, analytical_proj, norm_cone)
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
-
-        return x⁺, eval_func(x⁺, x)
     end
 end
 
@@ -122,7 +117,6 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
-$DOCS_EVAL_FUNC
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 
@@ -133,7 +127,6 @@ function forward_backward_forward(
     F,
     y::AbstractVector{VariableRef},
     model::Model;
-    eval_func=default_eval_func,
     analytical_proj=nothing,
     norm_cone::DataType=MOI.SecondOrderCone
 )
@@ -141,8 +134,6 @@ function forward_backward_forward(
     return (x::AbstractVector, χ::Real, params...) -> begin
         x⁺ = Π(x .- χ * F(x, params...))
         x⁺⁺ = x⁺ .- χ * (F(x⁺) .- F(x, params...))
-
-        return x⁺⁺, eval_func(x⁺⁺, x)
     end
 end
 

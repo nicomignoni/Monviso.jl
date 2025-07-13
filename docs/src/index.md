@@ -48,8 +48,8 @@ T = 10
 # Solve the VI
 residual = zeros(T)
 for τ in 1:T
-    x⁺, r = pg(x, χ)
-    residual[τ] = r 
+    x⁺ = pg(x, χ)
+    residual[τ] = norm(x .- x⁺) 
     x[:] = x⁺
 end
 
