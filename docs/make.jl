@@ -13,5 +13,8 @@ makedocs(
         assets=["assets/favicon.ico"]
     ),
     repo=Remotes.GitHub("nicomignoni", "Monviso.jl"),
+)
 
+deploydocs(
+    repo = "github.com/nicomignoni/Monviso.jl.git",
 )
