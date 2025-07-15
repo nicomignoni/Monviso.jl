@@ -130,8 +130,10 @@ function forward_backward_forward(
 )
     Π = get_projection_func(y, model, analytical_proj, norm_cone)
     return (x::AbstractVector, χ::Real, params...) -> begin
-        x⁺ = Π(x .- χ * F(x, params...))
-        x⁺⁺ = x⁺ .- χ * (F(x⁺, params...) .- F(x, params...))
+        F_x = F(x, params...)
+
+        x⁺ = Π(x .- χ * F_x)
+        x⁺⁺ = x⁺ .- χ * (F(x⁺, params...) .- F_x)
     end
 end
 
