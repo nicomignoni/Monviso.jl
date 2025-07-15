@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · Monviso.jl</title><meta name="title" content="Home · Monviso.jl"/><meta property="og:title" content="Home · Monviso.jl"/><meta property="twitter:title" content="Home · Monviso.jl"/><meta name="description" content="Documentation for Monviso.jl."/><meta property="og:description" content="Documentation for Monviso.jl."/><meta property="twitter:description" content="Documentation for Monviso.jl."/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href><img src="assets/logo.svg" alt="Monviso.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href>Monviso.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Installation"><span>Installation</span></a></li><li><a class="tocitem" href="#Quickstart"><span>Quickstart</span></a></li></ul></li><li><a class="tocitem" href="api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl/blob/master/docs/src/index.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Monviso.jl"><a class="docs-heading-anchor" href="#Monviso.jl">Monviso.jl</a><a id="Monviso.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Monviso.jl" title="Permalink"></a></h1><p><em>Solving monotone variational inequalities in Julia</em></p><h2 id="Installation"><a class="docs-heading-anchor" href="#Installation">Installation</a><a id="Installation-1"></a><a class="docs-heading-anchor-permalink" href="#Installation" title="Permalink"></a></h2><p>Install <code>Monviso.jl</code> from the Julia REPL</p><pre><code class="language-julia hljs">add ] https://github.com/nicomignoni/Monviso.jl.git</code></pre><h2 id="Quickstart"><a class="docs-heading-anchor" href="#Quickstart">Quickstart</a><a id="Quickstart-1"></a><a class="docs-heading-anchor-permalink" href="#Quickstart" title="Permalink"></a></h2><p>Let <span>$F(\mathbf{x}) = \mathbf{H} \mathbf{x}$</span> for some <span>$\mathbf{H} \succ 0$</span>, <span>$g(\mathbf{x}) = \|\mathbf{x}\|_1$</span>, and <span>$\mathcal{S} = \{\mathbf{x} \in \mathbb{R}^n : \mathbf{A} \mathbf{x} \leq \mathbf{b}\}$</span>, for some <span>$\mathbf{A} \in \mathbb{R}^{m \times n}$</span> and <span>$\mathbf{b} \in \mathbb{R}^n$</span>. It is straightforward to verify that <span>$F(\cdot)$</span> is strongly monotone with <span>$\mu = \lambda_{\min}(\mathbf{H})$</span> and Lipschitz with <span>$L = \|\mathbf{H}\|_2$</span>. The solution of the VI in can be implemented using <code>Monviso.jl</code> as follows</p><pre><code class="language-julia hljs">using Monviso, JuMP, Clarabel, LinearAlgebra, Plots
+
+# Create the problem data
+const n, m = 30, 40
+H = rand(n, n)
+A = rand(m, n)
+b = rand(m)
+
+# Make H positive semidefinite
+H =  H * H&#39;
+
+# Lipschitz and strong monotonicity constants
+L = norm(H)
+μ = eigvals(H) |&gt; minimum
+
+# Define the F mapping
+F(x) = H * x
+
+# Define a JuMP.Model
+model = Model(Clarabel.Optimizer)
+y = @variable(model, [1:n])
+@constraint(model, A * y &lt;= b),
+@constraint(model, y &gt;= 0)
+
+# Instantitate the projected gradient method (`pg`)
+pg = proj_gradient(F, y, model)
+
+# Define the initial point, step-size, and max number of iterations
+x = rand(n) .+ 4
+χ = 2/L^2
+T = 10
+
+# Solve the VI
+residual = zeros(T)
+for τ in 1:T
+    x⁺ = pg(x, χ)
+    residual[τ] = norm(x .- x⁺)
+    x[:] = x⁺
+end
+
+# Lets look at the residuals
+plot(residual, yscale=:log, xlabel=&quot;Iteration (τ)&quot;, ylabel=&quot;log||x - x⁺||&quot;)</code></pre><img src="index-1f480f2b.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Tuesday 15 July 2025 12:38">Tuesday 15 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
