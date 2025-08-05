@@ -10,3 +10,11 @@ proj_gradient
 forward_backward_forward
 ```
 
+```@docs
+extragradient
+```
+
+```@docs
+popov
+```
+
