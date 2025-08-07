@@ -37,8 +37,8 @@ y = @variable(model, [1:n])
 @constraint(model, A * y <= b),
 @constraint(model, y >= 0)
 
-# Instantitate the projected gradient method (`pg`) 
-pg = proj_gradient(F, y, model)
+# Instantitate the proximal gradient method 
+pg = prox_gradient(F; y=y, model=model)
 
 # Define the initial point, step-size, and max number of iterations
 x = rand(n) .+ 4

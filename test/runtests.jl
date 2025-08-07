@@ -24,22 +24,22 @@ y_cv = ComponentVector(@variable(model_cv, [1:length(x_cv)]), getaxes(x_cv))
 
 @testset "Projection, Vector" begin
     # With a constraint set
-    Π = proj(y_vector, model_vector)
+    Π = prox(y_vector, model_vector)
     @test Π(x_vector) isa Vector 
 
     # Differnent norm
-    Π = proj(y_vector, model_vector, norm_cone=MOI.NormOneCone)
+    Π = prox(y_vector, model_vector, norm_cone=MOI.NormOneCone)
     @test Π(x_vector) isa Vector
 end
 
 @testset "Projection, ComponentVectors" begin
 
     # With a constraint set
-    Π = proj(y_cv, model_cv)
+    Π = prox(y_cv, model_cv)
     @test Π(x_cv) isa ComponentVector
 
     # Differnent norm
-    Π = proj(y_cv, model_cv, norm_cone=MOI.NormOneCone)
+    Π = prox(y_cv, model_cv, norm_cone=MOI.NormOneCone)
     @test Π(x_cv) isa ComponentVector
 end
 
@@ -48,7 +48,7 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    pg = proj_gradient(F, y_vector, model_vector)
+    pg = prox_gradient(F; y=y_vector, model=model_vector)
     χ = 0.01
     @test pg(x_vector, χ) isa Vector  
 end
@@ -58,7 +58,7 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    fbf = forward_backward_forward(F, y_vector, model_vector)
+    fbf = forward_backward_forward(F; y=y_vector, model=model_vector)
     χ = 0.01
     @test fbf(x_vector, χ) isa Vector  
 end
@@ -75,7 +75,7 @@ end
 #=optimizer = Clarabel.Optimizer=#
 #==#
 #=# Projection=#
-#=p = proj(x, set, optimizer)=#
+#=p = prox(x, set, optimizer)=#
 #=p(x)=#
 
 #=# Projected gradient=#

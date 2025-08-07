@@ -3,37 +3,42 @@ module Monviso
 using JuMP, LinearAlgebra
 using MathOptInterface: MathOptInterface as MOI
 
-export proj, proj_gradient, forward_backward_forward, extragradient, popov
+export prox, prox_gradient, forward_backward_forward, extragradient, popov
 
 # Common arguments and keywords to doc
-const DOCS_F = "- `F` - a function of the form `(x, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
+const DOCS_F = "- `F` - a function of the form `(x::AbstractVector, params...) -> AbstractVector` of the same lenght of `x`, i.e., the VI mapping ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n``. Term `params` collects optional arguments that characterize `F` and might change at each iteration."
+const DOCS_G = "- `g::Function=nothing` - a function of the form `x::AbstractVector{VariableRef} -> Real`, i.e., the scalar function ``g : \\mathbb{R}^n \\to \\mathbb{R}``."
 const DOCS_Y = "- `y::AbstractVector{VariableRef}` - the container of `JuMP.VariableRef` associated to `model`, i.e., ``\\mathbf{y}``."
 const DOCS_MODEL = "- `model::Model` - the `JuMP.Model` describing the projection set ``\\mathcal{S}``." 
-const DOCS_NORM_CONE = "- `norm_cone=MOI.SecondOrderCone` - the cone related to the norm characterizing the projection." 
-const DOCS_ANALYTICAL_PROJ = "- `analytical_proj::=nothing` - the analytical form of the projection of the given set. If provided, it replaces of `proj`." 
+const DOCS_NORM_CONE = "- `norm_cone=MOI.SecondOrderCone` - the cone related to the norm characterizing the proximal operator." 
+const DOCS_ANALYTICAL_PROJ = "- `analytical_prox::Function=nothing` - the analytical form of the proximal operator for the given set. If provided, it replaces of `prox`." 
+base_signature(name::String) = "$name(F; y::Union{Nothing, AbstractVector{VariableRef}}=nothing, model::Union{Nothing, Model}=nothing; g::Function=nothing, analytical_prox::Function=nothing, norm_cone=MOI.SecondOrderCone)"
 
 """
-    proj(y::AbstractVector{VariableRef}, model::Model; norm_cone=MOI.SecondOrderCone)
+    prox(y::AbstractVector{VariableRef}, model::Model; g=nothing, norm_cone=MOI.SecondOrderCone)
 
-The projection operator closure.
+The proximal operator closure.
 
 # Arguments
 $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
+$DOCS_G
 $DOCS_NORM_CONE
 """
-function proj(
+function prox(
     y::AbstractVector{VariableRef},
     model::Model;
+    g=nothing,
     norm_cone=MOI.SecondOrderCone,
 )
+    g = g === nothing ? (x -> 0) : g
     _x = @variable(model, [1:length(y)])
 
     # Objective norm
     t = @variable(model)
-    @constraint(model, [t; 0.5(_x .- y)] in norm_cone(1 + length(y)))
+    @constraint(model, [t; g(y) .+ 0.5(_x .- y)] in norm_cone(1 + length(y)))
     @objective(model, Min, t)
 
     return (x::AbstractVector) -> begin
@@ -43,16 +48,28 @@ function proj(
     end
 end
 
-"""
-    proj_gradient(F, y::AbstractVector{VariableRef}, model::Model; analytical_proj=nothing, norm_cone=MOI.SecondOrderCone)
+function get_prox(y, model, analytical_prox, g, norm_cone)
+    no_arguments = y === nothing && model === nothing && analytical_prox === nothing
+    all_arguments = y !== nothing && model !== nothing && analytical_prox !== nothing
+    if no_arguments || all_arguments 
+        throw(ArgumentError("Exactly one between (y, model) and analytical_prox must be defined."))
+    elseif analytical_prox === nothing 
+        return prox(y, model; g=g, norm_cone=norm_cone)
+    else 
+        return analytical_prox
+    end
+end
 
-The projected gradient closure. 
+"""
+    $(base_signature("prox_gradient"))
+
+The proximal gradient closure. 
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the projected gradient (PG) algorithm is [^1]:
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the proximal gradient (PG) algorithm is [^1]:
 
 ```math
-\\mathbf{x}_{k+1} = \\text{proj}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{x}_k))
+\\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{x}_k))
 ```
 
 where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of PG is guaranteed for Lipschitz strongly monotone operators, with monotone constant ``\\mu > 0`` and Lipshitz constants ``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
@@ -65,24 +82,26 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
+$DOCS_G
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 """
-function proj_gradient(
-    F,
-    y::AbstractVector{VariableRef},
-    model::Model;
-    analytical_proj=nothing,
+function prox_gradient(
+    F;
+    y::Union{Nothing, AbstractVector{VariableRef}}=nothing,
+    model::Union{Nothing, Model}=nothing,
+    g=nothing,
+    analytical_prox=nothing,
     norm_cone=MOI.SecondOrderCone
 )   
-    Π = analytical_proj === nothing ? proj(y, model; norm_cone=norm_cone) : analytical_proj
+    Π = get_prox(y, model, analytical_prox, g, norm_cone)
     return (xk::AbstractVector, χ::Real, params...) -> begin
         xk1 = Π(xk .- χ * F(xk, params...))
     end
 end
 
 """
-    forward_backward_forward(F, y::AbstractVector{VariableRef}, model::Model; analytical_proj=nothing, norm_cone=MOI.SecondOrderCone)
+    $(base_signature("forward_backward_forward")) 
 
 The forward-backward-forward closure.
 
@@ -91,7 +110,7 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 
 ```math 
 \\begin{align*}
-    \\mathbf{y}_k &= \\text{proj}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi F(\\mathbf{x}_k)) \\\\
+    \\mathbf{y}_k &= \\text{prox}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi F(\\mathbf{x}_k)) \\\\
     \\mathbf{x}_{k+1} &= \\mathbf{y}_k - \\chi (F(\\mathbf{y}_k) - \\chi F(\\mathbf{x}_k))
 \\end{align*}
 ```
@@ -106,17 +125,19 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
+$DOCS_G
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 """
 function forward_backward_forward(
-    F,
-    y::AbstractVector{VariableRef},
-    model::Model;
-    analytical_proj=nothing,
+    F;
+    y::Union{Nothing, AbstractVector{VariableRef}}=nothing,
+    model::Union{Nothing, Model}=nothing,
+    g=nothing,
+    analytical_prox=nothing,
     norm_cone=MOI.SecondOrderCone
 )
-    Π = analytical_proj === nothing ? proj(y, model; norm_cone=norm_cone) : analytical_proj
+    Π = get_prox(y, model, analytical_prox, g, norm_cone)
     return (xk::AbstractVector, χ::Real, params...) -> begin
         F_xk = F(xk, params...)
 
@@ -128,7 +149,7 @@ function forward_backward_forward(
 end
 
 """
-    extragradient(F, y::AbstractVector{VariableRef}, model::Model; analytical_proj=nothing, norm_cone=MOI.SecondOrderCone)
+    $(base_signature("extragradient")) 
 
 The extragradient closure
 
@@ -137,8 +158,8 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 
 ```math
 \\begin{align*}
-    \\mathbf{y}_k &= \\text{proj}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{x}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\text{proj}_{\\mathcal{S}}(\\mathbf{y}_k - \\chi \\mathbf{F}(\\mathbf{x}_k))
+    \\mathbf{y}_k &= \\text{prox}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{x}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\mathcal{S}}(\\mathbf{y}_k - \\chi \\mathbf{F}(\\mathbf{x}_k))
 \\end{align*}
 ```
 
@@ -152,17 +173,19 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
+$DOCS_G
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 """
 function extragradient(
-    F,
-    y::AbstractVector{VariableRef},
-    model::Model;
-    analytical_proj=nothing,
+    F;
+    y::Union{Nothing, AbstractVector{VariableRef}}=nothing,
+    model::Union{Nothing, Model}=nothing,
+    g=nothing,
+    analytical_prox=nothing,
     norm_cone=MOI.SecondOrderCone
 )
-    Π = analytical_proj === nothing ? proj(y, model; norm_cone=norm_cone) : analytical_proj
+    Π = get_prox(y, model, analytical_prox, g, norm_cone)
     return (xk::AbstractVector, χ::Real, params...) -> begin
         yk = Π(xk - χ * F(xk, params...))
         xk1 = Π(xk - χ * F(yk, params...))
@@ -172,7 +195,7 @@ function extragradient(
 end
 
 """
-    popov(F, y::AbstractVector{VariableRef}, model::Model; analytical_proj=nothing, norm_cone=MOI.SecondOrderCone)   
+    $(base_signature("popov")) 
 
 The Popov's method closure
 
@@ -180,8 +203,8 @@ Given a constant step-size ``\\chi > 0`` and an initial vectors ``\\mathbf{x}_0,
 
 ```math
 \\begin{align*}
-    \\mathbf{y}_{k+1} &= \\text{proj}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{y}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\text{proj}_{\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi \\mathbf{F}(\\mathbf{x}_k))
+    \\mathbf{y}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{y}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi \\mathbf{F}(\\mathbf{x}_k))
 \\end{align*}
 ```
 
@@ -195,17 +218,19 @@ $DOCS_Y
 $DOCS_MODEL
 
 # Keywords
+$DOCS_G
 $DOCS_ANALYTICAL_PROJ
 $DOCS_NORM_CONE
 """
 function popov(
-    F,
-    y::AbstractVector{VariableRef},
-    model::Model;
-    analytical_proj=nothing,
+    F;
+    y::Union{Nothing, AbstractVector{VariableRef}}=nothing,
+    model::Union{Nothing, Model}=nothing,
+    g=nothing,
+    analytical_prox=nothing,
     norm_cone=MOI.SecondOrderCone
 )
-    Π = analytical_proj === nothing ? proj(y, model; norm_cone=norm_cone) : analytical_proj
+    Π = get_prox(y, model, analytical_prox, g, norm_cone)
     return (xk::AbstractVector, yk::AbstractVector, χ::Real, params...) -> begin
         yk1 = Π(xk - χ * F(yk, params...)) 
         xk1 = Π(xk - χ * F(yk1, params...))

@@ -1,9 +1,9 @@
 ```@docs
-proj
+prox
 ```
 
 ```@docs
-proj_gradient
+prox_gradient
 ```
 
 ```@docs
