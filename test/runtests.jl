@@ -48,9 +48,9 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    pg = prox_gradient(F; y=y_vector, model=model_vector)
+    vi = VI(F; y=y_vector, model=model_vector)
     χ = 0.01
-    @test pg(x_vector, χ) isa Vector  
+    @test pg(vi, x_vector, χ) isa Vector  
 end
 
 @testset "Forward-backward-forward, Vector" begin
@@ -58,9 +58,9 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    fbf = forward_backward_forward(F; y=y_vector, model=model_vector)
+    vi = VI(F; y=y_vector, model=model_vector)
     χ = 0.01
-    @test fbf(x_vector, χ) isa Vector  
+    @test fbf(vi, x_vector, χ) isa Vector  
 end
 
 

@@ -37,18 +37,18 @@ y = @variable(model, [1:n])
 @constraint(model, A * y <= b),
 @constraint(model, y >= 0)
 
-# Instantitate the proximal gradient method 
-pg = prox_gradient(F; y=y, model=model)
+# Instantitate the VI 
+vi = VI(F; y=y, model=model)
 
 # Define the initial point, step-size, and max number of iterations
 x = rand(n) .+ 4
 χ = 2/L^2
 T = 10
 
-# Solve the VI
+# Solve the VI using the proximal gradient iterate
 residual = zeros(T)
 for τ in 1:T
-    x⁺ = pg(x, χ)
+    x⁺ = pg(vi, x, χ)
     residual[τ] = norm(x .- x⁺) 
     x[:] = x⁺
 end
