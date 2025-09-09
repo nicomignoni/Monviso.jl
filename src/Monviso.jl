@@ -20,7 +20,7 @@ struct VI
 end
 
 """
-    VI(F; y::Union{Nothing, AbstractVector{VariableRef}}=nothing, model::Union{Nothing, Model}=nothing, g=nothing, analytical_prox=nothing, norm_cone=MOI.SecondOrderCone)
+    VI(F; y::Union{Nothing, AbstractArray{VariableRef}}=nothing, model::Union{Nothing, Model}=nothing, g=nothing, analytical_prox=nothing, norm_cone=MOI.SecondOrderCone)
 
 # Arguments
 $DOCS_F
@@ -35,7 +35,7 @@ $DOCS_NORM_CONE
 function VI(
     F;
     g=nothing,
-    y::Union{Nothing, AbstractVector{VariableRef}}=nothing,
+    y::Union{Nothing, AbstractArray{VariableRef}}=nothing,
     model::Union{Nothing, Model}=nothing,
     analytical_prox=nothing,
     norm_cone=MOI.SecondOrderCone
@@ -53,7 +53,7 @@ function VI(
 end
 
 """
-    prox(y::AbstractVector{VariableRef}, model::Model; g::Function=nothing, norm_cone=MOI.SecondOrderCone)
+    prox(y::AbstractArray{VariableRef}, model::Model; g::Function=nothing, norm_cone=MOI.SecondOrderCone)
 
 The proximal operator iterate.
 
@@ -66,7 +66,7 @@ $DOCS_G
 $DOCS_NORM_CONE
 """
 function prox(
-    y::AbstractVector{VariableRef},
+    y::AbstractArray{VariableRef},
     model::Model;
     g=nothing,
     norm_cone=MOI.SecondOrderCone,
@@ -79,19 +79,19 @@ function prox(
     @constraint(model, [t; g(y) .+ 0.5(_x .- y)] in norm_cone(1 + length(y)))
     @objective(model, Min, t)
 
-    return (x::AbstractVector) -> begin
+    return (x::AbstractArray) -> begin
         fix.(_x, x)
         optimize!(model)
         value.(y)
     end
 end
 
-function residual(vi::VI, x::AbstractVector, params...)
+function residual(vi::VI, x::AbstractArray, params...)
     return norm(x .- vi.prox(x .- vi.F(x, params...)))
 end
 
 """
-    pg(vi::VI, xk::AbstractVector, χ::Real, params...)
+    pg(vi::VI, xk::AbstractArray, χ::Real, params...)
 
 The proximal gradient iterate. 
 
@@ -107,14 +107,14 @@ where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The 
 [^1]: Nemirovskij, A. S., & Yudin, D. B. (1983). Problem complexity and method efficiency in optimization.
 
 """
-function pg(vi::VI, xk::AbstractVector, χ::Real, params...)   
+function pg(vi::VI, xk::AbstractArray, χ::Real, params...)   
     xk1 = vi.prox(xk .- χ * vi.F(xk, params...))
 
     return xk1
 end
 
 """
-    eg(vi::VI, xk::AbstractVector, χ::Real, params...)
+    eg(vi::VI, xk::AbstractArray, χ::Real, params...)
 
 The extragradient iterate
 
@@ -132,7 +132,7 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 
 [^2]: Korpelevich, G. M. (1976). The extragradient method for finding saddle points and other problems. Matecon, 12, 747-756.
 """
-function eg(vi::VI, xk::AbstractVector, χ::Real, params...)
+function eg(vi::VI, xk::AbstractArray, χ::Real, params...)
     yk = vi.prox(xk - χ * vi.F(xk, params...))
     xk1 = vi.prox(xk - χ * vi.F(yk, params...))
 
@@ -140,7 +140,7 @@ function eg(vi::VI, xk::AbstractVector, χ::Real, params...)
 end
 
 """
-    popov(vi::VI, xk::AbstractVector, yk::AbstractVector, χ::Real, params...)
+    popov(vi::VI, xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
 
 The Popov's method iterate
 
@@ -158,7 +158,7 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 
 [^3]: Popov, L.D. A modification of the Arrow-Hurwicz method for search of saddle points. Mathematical Notes of the Academy of Sciences of the USSR 28, 845–848 (1980)
 """
-function popov(vi::VI, xk::AbstractVector, yk::AbstractVector, χ::Real, params...)
+function popov(vi::VI, xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
     yk1 = vi.prox(xk - χ * vi.F(yk, params...)) 
     xk1 = vi.prox(xk - χ * vi.F(yk1, params...))
 
@@ -166,7 +166,7 @@ function popov(vi::VI, xk::AbstractVector, yk::AbstractVector, χ::Real, params.
 end
 
 """
-    fbf(vi::VI, xk::AbstractVector, χ::Real, params...)
+    fbf(vi::VI, xk::AbstractArray, χ::Real, params...)
 
 The forward-backward-forward iterate.
 
@@ -184,7 +184,7 @@ where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The 
 
 [^4]: Tseng, P. (2000). A modified forward-backward splitting method for maximal monotone mappings. SIAM Journal on Control and Optimization, 38(2), 431-446.
 """
-function fbf(vi::VI, xk::AbstractVector, χ::Real, params...)
+function fbf(vi::VI, xk::AbstractArray, χ::Real, params...)
     F_xk = vi.F(xk, params...)
 
     yk = vi.prox(xk .- χ * F_xk)
@@ -194,7 +194,7 @@ function fbf(vi::VI, xk::AbstractVector, χ::Real, params...)
 end
 
 """
-    frb(vi::VI, xk::AbstractVector, x1k::AbstractVector, χ::Real, params...)
+    frb(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
 
 The forward-reflected-backward iterate.
 
@@ -209,7 +209,7 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 
 [^5]: Malitsky, Y., & Tam, M. K. (2020). A forward-backward splitting method for monotone inclusions without cocoercivity. SIAM Journal on Optimization, 30(2), 1451-1472.
 """
-function frb(vi::VI, xk::AbstractVector, x1k::AbstractVector, χ::Real, params...)
+function frb(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
     xk1 = vi.prox(xk .- χ * (2vi.F(xk, params...) .+ vi.F(x1k, params...)))
 
     return xk1
@@ -217,7 +217,7 @@ end
 
 
 """
-    prg(vi::VI, xk::AbstractVector, x1k::AbstractVector, χ::Real, params...)
+    prg(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
 
 The projected reflected gradient iterate.
 
@@ -232,14 +232,14 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 
 [^6]: Malitsky, Y. (2015). Projected reflected gradient methods for monotone variational inequalities. SIAM Journal on Optimization, 25(1), 502-520.
 """
-function prg(vi::VI, xk::AbstractVector, x1k::AbstractVector, χ::Real, params...)
+function prg(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
     xk1 = vi.prox(xk .- χ * vi.F(2xk .- x1k, params...))
 
     return xk1
 end
 
 """
-    eag(vi::VI, xk::AbstractVector, x0::AbstractVector, k::Int, χ::Real, params...)
+    eag(vi::VI, xk::AbstractArray, x0::AbstractArray, k::Int, χ::Real, params...)
 
 The extra-anchored gradient iterate.
 
@@ -261,7 +261,7 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex  (possibly non-s
 
 [^7]: Yoon, T., & Ryu, E. K. (2021, July). Accelerated Algorithms for Smooth Convex-Concave Minimax Problems with O (1/k^ 2) Rate on Squared Gradient Norm. In International Conference on Machine Learning (pp. 12098-12109). PMLR.
 """
-function eag(vi::VI, xk::AbstractVector, x0::AbstractVector, k::Int, χ::Real, params...)
+function eag(vi::VI, xk::AbstractArray, x0::AbstractArray, k::Int, χ::Real, params...)
     yk = vi.prox(xk .- χ * vi.F(xk, params...) .+ (x0 - xk) ./ (k + 1))
     xk1 = vi.prox(xk .- χ * vi.F(yk, params...) .+ (x0 - xk) ./ (k + 1))
 
@@ -269,7 +269,7 @@ function eag(vi::VI, xk::AbstractVector, x0::AbstractVector, k::Int, χ::Real, p
 end
 
 """
-    arg(xk::AbstractVector, x1k::AbstractVector, x0::AbstractVector, k::Int, χ::Real, params...)
+    arg(xk::AbstractArray, x1k::AbstractArray, x0::AbstractArray, k::Int, χ::Real, params...)
 
 The accelerated reflected gradient iterate.
 
@@ -293,9 +293,9 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 """
 function arg(
     vi::VI,
-    xk::AbstractVector, 
-    x1k::AbstractVector,
-    x0::AbstractVector, 
+    xk::AbstractArray, 
+    x1k::AbstractArray,
+    x0::AbstractArray, 
     k::Int, 
     χ::Real, 
     params...
@@ -307,7 +307,7 @@ function arg(
 end
 
 """
-    fogda(vi::VI, xk::AbstractVector, x1k::AbstractVector, y1k::AbstractVector, k::Int, χ::Real, α::Real=2.1, params...)
+    fogda(vi::VI, xk::AbstractArray, x1k::AbstractArray, y1k::AbstractArray, k::Int, χ::Real, α::Real=2.1, params...)
 
 (Explicit) fast optimistic gradient descent-ascent iterate
 
@@ -330,9 +330,9 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 """
 function fogda(
     vi::VI,
-    xk::AbstractVector, 
-    x1k::AbstractVector,
-    y1k::AbstractVector, 
+    xk::AbstractArray, 
+    x1k::AbstractArray,
+    y1k::AbstractArray, 
     k::Int, 
     χ::Real, 
     params...;
@@ -345,7 +345,7 @@ function fogda(
 end
 
 """
-    cfogda(vi::VI, xk::AbstractVector, x1k::AbstractVector, y1k::AbstractVector, zk::AbstractVector, k::Int, χ::Real, α::Real=2.1, params...)
+    cfogda(vi::VI, xk::AbstractArray, x1k::AbstractArray, y1k::AbstractArray, zk::AbstractArray, k::Int, χ::Real, α::Real=2.1, params...)
 
 Constrained fast optimistic gradient descent-ascent iterate
 
@@ -366,10 +366,10 @@ where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-sm
 """
 function cfogda(
     vi::VI,
-    xk::AbstractVector, 
-    x1k::AbstractVector,
-    y1k::AbstractVector, 
-    zk::AbstractVector,
+    xk::AbstractArray, 
+    x1k::AbstractArray,
+    y1k::AbstractArray, 
+    zk::AbstractArray,
     k::Int, 
     χ::Real, 
     params...;
@@ -383,7 +383,7 @@ function cfogda(
 end
 
 """
-    graal(vi::VI, xk::AbstractVector, yk::AbstractVector, χ::Real, ϕ::Real=GOLDEN_RATIO, params...)
+    graal(vi::VI, xk::AbstractArray, yk::AbstractArray, χ::Real, ϕ::Real=GOLDEN_RATIO, params...)
 
 Golden ratio algorithm iterate
 
@@ -403,8 +403,8 @@ The convergence of GRAAL algorithm is guaranteed for Lipschitz monotone operator
 """
 function graal(
     vi::VI,
-    xk::AbstractVector, 
-    yk::AbstractVector,
+    xk::AbstractArray, 
+    yk::AbstractArray,
     χ::Real, 
     params...;
     ϕ::Real=GOLDEN_RATIO,
@@ -416,7 +416,7 @@ function graal(
 end
 
 """
-    agraal(vi::VI, xk::AbstractVector, x1k::AbstractVector, yk::AbstractVector, s1k::Real, tk::Real=1, χ_large::Real=1e6, ϕ::Real=GOLDEN_RATIO, params...)
+    agraal(vi::VI, xk::AbstractArray, x1k::AbstractArray, yk::AbstractArray, s1k::Real, tk::Real=1, χ_large::Real=1e6, ϕ::Real=GOLDEN_RATIO, params...)
 
 Adaptive golden ratio algorithm
 
@@ -443,9 +443,9 @@ The convergence guarantees discussed for GRAAL also hold for aGRAAL.
 """
 function agraal(
     vi::VI,
-    xk::AbstractVector, 
-    x1k::AbstractVector,
-    yk::AbstractVector,
+    xk::AbstractArray, 
+    x1k::AbstractArray,
+    yk::AbstractArray,
     s1k::Real,
     params...;
     tk::Real=1,
@@ -507,9 +507,9 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in\\mathbb{R}^n``, ``\\m
 """
 function hgraal_1(
     vi::VI,
-    xk::AbstractVector, 
-    x1k::AbstractVector,
-    yk::AbstractVector,
+    xk::AbstractArray, 
+    x1k::AbstractArray,
+    yk::AbstractArray,
     s1k::Real,
     tk::Real,
     ck::Int,
