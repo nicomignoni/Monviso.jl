@@ -1,7 +1,7 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/build/assets/logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/logo.svg">
   <img alt="envy logo" src="docs/src/assets/logo.svg" width="20%" height="20%">
 </picture>
 
