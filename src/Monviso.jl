@@ -356,7 +356,7 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1 \\i
 \\begin{align*}
     \\mathbf{y}_k &= \\mathbf{x}_k + \\frac{k}{k+\\alpha}(\\mathbf{x}_k - \\mathbf{x}_{k-1}) - \\chi \\frac{\\alpha}{k+\\alpha}(\\mathbf{F}(\\mathbf{y}_{k-1}) + \\mathbf{z}_k) \\\\
     \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}\\left(\\mathbf{y}_k - \\chi\\left(1 + \\frac{k}{k+\\alpha}\\right)(\\mathbf{F}(\\mathbf{y}_k) - \\mathbf{F}(\\mathbf{y}_{k-1}) - \\zeta_k)\\right) \\\\
-    \\mathbf{z}_{k+1} &= \frac{k+\\alpha}{\\chi (2k+\\alpha)}( \\mathbf{y}_k - \\mathbf{x}_{k+1}) - (\\mathbf{F}(\\mathbf{y}_k) - \\mathbf{F}(\\mathbf{y}_{k-1}) - \\zeta_k)
+    \\mathbf{z}_{k+1} &= \\frac{k+\\alpha}{\\chi (2k+\\alpha)}( \\mathbf{y}_k - \\mathbf{x}_{k+1}) - (\\mathbf{F}(\\mathbf{y}_k) - \\mathbf{F}(\\mathbf{y}_{k-1}) - \\zeta_k)
 \\end{align*}
 ```
 
