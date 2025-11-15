@@ -6,7 +6,7 @@ The convention used for naming indexed terms is the following:
 - `xnk` stands for $x_{k-n}$
 
 Therefore, as examples, `y0` is $y_0$, `tk` is $t_k$, `z1k` is $z_{k-1}$, and `sk2` is $s_{k+2}$.
-The vector corresponding to the decision variable of the VI is always denoted with $\mathbf{x}$; all other vectors that might be used and / returned are generically referred to as *auxiliary points*.
+The vector corresponding to the decision variable of the VI is always denoted with $\mathbf{x}$; all other vectors that might be used or returned are generically referred to as *auxiliary points*.
 
 ```@docs
 prox

@@ -429,7 +429,7 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in \\mathbb{R}^n``, ``\\
 ```math
 \\begin{align*} 
 \\chi_k &= \\min\\left\\{\\rho\\chi_{k-1},
-      \\frac{\\phi\theta_k \\|\\mathbf{x}_k
+      \\frac{\\phi\\theta_k \\|\\mathbf{x}_k
       -\\mathbf{x}_{k-1}\\|^2}{4\\chi_{k-1}\\|\\mathbf{F}(\\mathbf{x}_k)
       -\\mathbf{F}(\\mathbf{x}_{k-1})\\|^2}, \\bar{\\chi}\\right\\} \\\\
 \\mathbf{x}_{k+1}, \\mathbf{y}_{k+1} &= \\texttt{graal}(\\mathbf{x}_k, \\mathbf{y}_k, \\chi_k, \\phi) \\\\
