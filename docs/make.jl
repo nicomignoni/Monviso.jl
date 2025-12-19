@@ -1,18 +1,24 @@
-push!(LOAD_PATH,"../src/")
+using Documenter, DocumenterCitations, Monviso
 
-using Documenter, Monviso
+bib = CitationBibliography(joinpath(@__DIR__, "src", "references.bib"))
 
 makedocs(
     sitename="Monviso.jl",
     pages=[
         "Home" => "index.md",
-        "API" => "api.md"
+        "Getting started" => [
+            "What's a VI?" => "getting-started/whats-a-vi.md",
+            "A basic example" => "getting-started/basic-example.md"
+        ],
+        "API" => "api.md",
+        "References" => "references.md"
     ],
     format = Documenter.HTML(
         edit_link="master",
         assets=["assets/favicon.ico"]
     ),
     repo=Remotes.GitHub("nicomignoni", "Monviso.jl"),
+    plugins=[bib]
 )
 
 deploydocs(

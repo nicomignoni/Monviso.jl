@@ -1,3 +1,5 @@
+# API
+
 The convention used for naming indexed terms is the following:
 
 - Indexed terms' names are single letters

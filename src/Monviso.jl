@@ -96,16 +96,13 @@ end
 The proximal gradient iterate. 
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the proximal gradient (PG) algorithm is [^1]:
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the proximal gradient (PG) algorithm is [nemirovskij1983problem](@cite):
 
 ```math
 \\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(\\mathbf{x}_k))
 ```
 
 where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of PG is guaranteed for Lipschitz strongly monotone operators, with monotone constant ``\\mu > 0`` and Lipshitz constants ``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
-
-[^1]: Nemirovskij, A. S., & Yudin, D. B. (1983). Problem complexity and method efficiency in optimization.
-
 """
 function pg(vi::VI, xk::AbstractArray, χ::Real, params...)   
     xk1 = vi.prox(xk .- χ * vi.F(xk, params...))
@@ -119,7 +116,7 @@ end
 The extragradient iterate
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of the extragradient algorithm (EG) is[^2]:
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of the extragradient algorithm (EG) is [korpelevich1976extragradient](@cite):
 
 ```math
 \\begin{align*}
@@ -129,8 +126,6 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the EGD algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
-
-[^2]: Korpelevich, G. M. (1976). The extragradient method for finding saddle points and other problems. Matecon, 12, 747-756.
 """
 function eg(vi::VI, xk::AbstractArray, χ::Real, params...)
     yk = vi.prox(xk - χ * vi.F(xk, params...))
@@ -145,7 +140,7 @@ end
 The Popov's method iterate
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vectors ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Popov's Method (PM) is[^3]:
+Given a constant step-size ``\\chi > 0`` and an initial vectors ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Popov's Method (PM) is [popov1980modification](@cite):
 
 ```math
 \\begin{align*}
@@ -155,8 +150,6 @@ Given a constant step-size ``\\chi > 0`` and an initial vectors ``\\mathbf{x}_0,
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of PM is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
-
-[^3]: Popov, L.D. A modification of the Arrow-Hurwicz method for search of saddle points. Mathematical Notes of the Academy of Sciences of the USSR 28, 845–848 (1980)
 """
 function popov(vi::VI, xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
     yk1 = vi.prox(xk - χ * vi.F(yk, params...)) 
@@ -171,7 +164,7 @@ end
 The forward-backward-forward iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Forward-Backward-Forward (FBF) algorithm is [^4]:
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Forward-Backward-Forward (FBF) algorithm is [tseng2000modified](@cite):
 
 ```math 
 \\begin{align*}
@@ -181,8 +174,6 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 ```
 
 where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the FBF algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
-
-[^4]: Tseng, P. (2000). A modified forward-backward splitting method for maximal monotone mappings. SIAM Journal on Control and Optimization, 38(2), 431-446.
 """
 function fbf(vi::VI, xk::AbstractArray, χ::Real, params...)
     F_xk = vi.F(xk, params...)
@@ -199,15 +190,13 @@ end
 The forward-reflected-backward iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the Forward-Reflected-Backward (FRB) is the following[^5]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the Forward-Reflected-Backward (FRB) is the following [malitsky2020forward](@cite):
 
 ```math
 \\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi (2\\mathbf{F}(\\mathbf{x}_k) + \\mathbf{F}(\\mathbf{x}_{k-1})))
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the FRB algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
-
-[^5]: Malitsky, Y., & Tam, M. K. (2020). A forward-backward splitting method for monotone inclusions without cocoercivity. SIAM Journal on Optimization, 30(2), 1451-1472.
 """
 function frb(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
     xk1 = vi.prox(xk .- χ * (2vi.F(xk, params...) .+ vi.F(x1k, params...)))
@@ -222,15 +211,13 @@ end
 The projected reflected gradient iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the projected reflected gradient (PRG) is the following [^6]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the projected reflected gradient (PRG) is the following [malitsky2015projected](@cite):
 
 ```math 
 \\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}(2\\mathbf{x}_k - \\mathbf{x}_{k-1})) 
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of PRG algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constants ``L < +\\infty``, when ``\\chi \\in (0,(\\sqrt{2} - 1)/L)``. Differently from the EGD iteration, the PRGD has the advantage of requiring a single proximal operator evaluation.
-
-[^6]: Malitsky, Y. (2015). Projected reflected gradient methods for monotone variational inequalities. SIAM Journal on Optimization, 25(1), 502-520.
 """
 function prg(vi::VI, xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
     xk1 = vi.prox(xk .- χ * vi.F(2xk .- x1k, params...))
@@ -244,7 +231,7 @@ end
 The extra-anchored gradient iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th  iterate of extra anchored gradient (EAG) algorithm is [^7]:
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in \\mathbb{R}^n``, the ``k``-th  iterate of extra anchored gradient (EAG) algorithm is [yoon2021accelerated](@cite):
 
 ```math
 \\begin{align*}
@@ -258,8 +245,6 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex  (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the EAG algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{\\sqrt{3}L} \\right)``.
-
-[^7]: Yoon, T., & Ryu, E. K. (2021, July). Accelerated Algorithms for Smooth Convex-Concave Minimax Problems with O (1/k^ 2) Rate on Squared Gradient Norm. In International Conference on Machine Learning (pp. 12098-12109). PMLR.
 """
 function eag(vi::VI, xk::AbstractArray, x0::AbstractArray, k::Int, χ::Real, params...)
     yk = vi.prox(xk .- χ * vi.F(xk, params...) .+ (x0 - xk) ./ (k + 1))
@@ -274,7 +259,7 @@ end
 The accelerated reflected gradient iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the accelerated reflected gradient (ARG) is the following[^8]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the accelerated reflected gradient (ARG) is the following [cai2022accelerated](@cite):
 
 ```math
 \\begin{align*}
@@ -288,8 +273,6 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\m
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
-
-[^8]: Cai, Y., & Zheng, W. (2022). Accelerated single-call methods for constrained min-max optimization. arXiv preprint arXiv:2210.03096.
 """
 function arg(
     vi::VI,
@@ -312,7 +295,7 @@ end
 (Explicit) fast optimistic gradient descent-ascent iterate
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the explicit fast OGDA (FOGDA) is the following [^9]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of the explicit fast OGDA (FOGDA) is the following [boct2025fast](@cite):
 
 ```math
 \\begin{align*}
@@ -325,8 +308,6 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\m
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{4L}\\right)`` and ``\\alpha > 2``.
-
-[^9]: Boţ, R. I., Csetnek, E. R., & Nguyen, D. K. (2023). Fast Optimistic Gradient Descent Ascent (OGDA) method in continuous and discrete time. Foundations of Computational Mathematics, 1-60.
 """
 function fogda(
     vi::VI,
@@ -350,7 +331,7 @@ end
 Constrained fast optimistic gradient descent-ascent iterate
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1 \\in \\mathcal{S}``, ``\\mathbf{z}_1 \\in N_{\\mathcal{S}}(\\mathbf{x}_1)``, ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of Constrained Fast Optimistic Gradient Descent Ascent (CFOGDA) is the following[^10]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1 \\in \\mathcal{S}``, ``\\mathbf{z}_1 \\in N_{\\mathcal{S}}(\\mathbf{x}_1)``, ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate of Constrained Fast Optimistic Gradient Descent Ascent (CFOGDA) is the following [sedlmayer2023fast](@cite):
 
 ```math 
 \\begin{align*}
@@ -361,8 +342,6 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1 \\i
 ```
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence of the CFOGDA algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{4L}\\right)`` and ``\\alpha > 2``.
-
-[^10]: Sedlmayer, M., Nguyen, D. K., & Bot, R. I. (2023, July). A fast optimistic method for monotone variational inequalities. In International Conference on Machine Learning (pp. 30406-30438). PMLR.
 """
 function cfogda(
     vi::VI,
@@ -388,7 +367,7 @@ end
 Golden ratio algorithm iterate
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate the golden ratio algorithm (GRAAL) is the following [^11]:
+Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the basic ``k``-th iterate the golden ratio algorithm (GRAAL) is the following [malitsky2020golden](@cite):
 
 ```math 
 \\begin{align*}
@@ -398,8 +377,6 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_0,\\m
 ```
 
 The convergence of GRAAL algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz constants ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{\\varphi}{2L}\\right]`` and ``\\phi \\in (1,\\varphi]``, where ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` is the golden ratio.
-
-[^11]: Malitsky, Y. (2020). Golden ratio algorithms for variational inequalities. Mathematical Programming, 184(1), 383-410.
 """
 function graal(
     vi::VI,
@@ -422,7 +399,7 @@ Adaptive golden ratio algorithm
 
 # Description
 The Adaptive Golden Ratio Algorithm (aGRAAL) algorithm is a variation of the Golden Ratio Algorithm, with adaptive step size. 
-Following [^12], let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/\\phi^2``, where ``\\phi \\in (0,\\varphi]`` and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` is the golden ratio. 
+Following [malitsky2020golden](@cite), let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/\\phi^2``, where ``\\phi \\in (0,\\varphi]`` and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` is the golden ratio. 
 Moreover, let ``\\bar{\\chi} \\gg 0`` be a constant (arbitrarily large) step-size. 
 Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in \\mathbb{R}^n``, ``\\mathbf{y}_0 = \\mathbf{x}_1``, and ``\\chi_0 > 0``, the ``k``-th iterate for aGRAAL is the following:
  
@@ -438,8 +415,6 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in \\mathbb{R}^n``, ``\\
 ```
 
 The convergence guarantees discussed for GRAAL also hold for aGRAAL. 
-
-[^12]: Malitsky, Y. (2020). Golden ratio algorithms for variational inequalities. Mathematical Programming, 184(1), 383-410.
 """
 function agraal(
     vi::VI,
@@ -466,7 +441,7 @@ end
     Hybrid golden ratio algorithm I 
 
 # Description
-The HGRAAL-1 algorithm[^13] is a variation of the Adaptive Golden Ratio Algorithm. 
+The HGRAAL-1 algorithm [baghbadorani2024hybrid](@cite) is a variation of the Adaptive Golden Ratio Algorithm. 
 Let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/\\phi^2``, where ``\\phi \\in (0,\\varphi]`` and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` is the golden ratio. 
 The residual at point ``\\mathbf{x}_k`` is given by ``J : \\mathbb{R}^n \\to \\mathbb{R}``, defined as follows:
 
@@ -501,9 +476,6 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in\\mathbb{R}^n``, ``\\m
     \\theta_{k+1} &= \\phi\\frac{\\chi_k}{\\chi_{k-1}} 
 \\end{align*}
 ```
-
-[^13]: Rahimi Baghbadorani, R., Mohajerin Esfahani, P., & Grammatico, S. (2024). A hybrid algorithm for monotone variational inequalities. 
-(Manuscript submitted for publication).
 """
 function hgraal_1(
     vi::VI,
