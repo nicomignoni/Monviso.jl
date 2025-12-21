@@ -422,16 +422,16 @@ function agraal(
     x1k::AbstractArray,
     yk::AbstractArray,
     s1k::Real,
-    params...;
     tk::Real=1,
+    params...;
     ϕ::Real=GOLDEN_RATIO,
     χ_large::Real=1e6 
 )
     ρ = 1 / ϕ + 1 / ϕ^2
 
-    sk = min(ρ * s1k, ϕ * tk * norm(xk .- x1k) / (4s1k * norm(vi.F(xk. params...) .- vi.F(x1k, params...))))
+    sk = min(ρ * s1k, ϕ * tk * norm(xk .- x1k) / (4s1k * norm(vi.F(xk, params...) .- vi.F(x1k, params...))))
 
-    xk1, yk1 = graal(vi, xk, yk, sk, ϕ)
+    xk1, yk1 = graal(vi, xk, yk, sk, params...; ϕ=ϕ)
     tk1 = ϕ * sk / s1k
 
     return xk1, yk1, sk, tk1
