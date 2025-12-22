@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Feasibility problem · Monviso.jl</title><meta name="title" content="Feasibility problem · Monviso.jl"/><meta property="og:title" content="Feasibility problem · Monviso.jl"/><meta property="twitter:title" content="Feasibility problem · Monviso.jl"/><meta name="description" content="Documentation for Monviso.jl."/><meta property="og:description" content="Documentation for Monviso.jl."/><meta property="twitter:description" content="Documentation for Monviso.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="Monviso.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Monviso.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting started</a></li><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href>Feasibility problem</a></li><li><a class="tocitem" href="../skew-symmetric/">Skew symmetric</a></li><li><a class="tocitem" href="../zero-sum-game/">Two-players zero-sum games</a></li><li><a class="tocitem" href="../linear-quadratic-game/">Linear-quadratic games</a></li><li><a class="tocitem" href="../markov-process/">Markov decision process</a></li><li><a class="tocitem" href="../logistic-regression/">Logistic regression</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Feasibility problem</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Feasibility problem</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl/blob/master/docs/src/examples/feasibility-problem.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Feasibility-problem"><a class="docs-heading-anchor" href="#Feasibility-problem">Feasibility problem</a><a id="Feasibility-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Feasibility-problem" title="Permalink"></a></h1><p>Let us consider <span>$M$</span> balls in <span>$\mathbb{R}^n$</span>, where the <span>$i$</span>-th ball of radius <span>$r_i &gt; 0$</span> centered in <span>$\mathbf{c}_i \in \mathbb{R}^n$</span> is given by <span>$\mathcal{B}_i(\mathbf{c}_i, r_i) \subset \mathbb{R}^n$</span>. We are interested in finding a point belonging to their intersection, i.e., we want to solve the following</p><p class="math-container">\[\begin{equation} 
+    \text{find} \ \mathbf{x} \ \text{subject to} \ \mathbf{x} \in \bigcap_{i = 1}^M \mathcal{B}_i(\mathbf{c}_i, r_i)
+\end{equation}\]</p><p>It is straightforward to verify that the projection of a point onto <span>$\mathcal{B}_i(\mathbf{c}_i,r_i)$</span> is evaluated as</p><p class="math-container">\[\begin{equation}
+    \mathbf{P}_i(\mathbf{x}) := 
+    \text{proj}_{\mathcal{B}_i(\mathbf{c}_i,r_i)}(\mathbf{x}) = 
+    \begin{cases}
+        \displaystyle r_i\frac{\mathbf{x} - 
+        \mathbf{c}_i}{\|\mathbf{x} - \mathbf{c}_i\|} &amp; \text{if} \ \|\mathbf{x} - \mathbf{c}_i\| &gt; r_i \\
+        \mathbf{x} &amp; \text{otherwise}
+    \end{cases}
+\end{equation}\]</p><p>Due to the non-expansiveness of the projection in <span>$(2)$</span>, one can find a solution for <span>$(1)$</span> as the fixed point of the following iterate </p><p class="math-container">\[\begin{equation}
+    \mathbf{x}_{k+1} = \mathbf{T}(\mathbf{x}_k) = \frac{1}{M}\sum_{i = 1}^M\mathbf{P}_i(\mathbf{x}_k) 
+\end{equation}\]</p><p>which result from the well-known Krasnoselskii-Mann iterate. By letting <span>$\mathbf{F} = \mathbf{I} - \mathbf{T}$</span>, where <span>$\mathbf{I}$</span> denotes the identity operator, the fixed point for <span>$(3)$</span> can be treated as the canonical VI [<a href="../../references/#bauschke1996projection">1</a>]. </p><p>Let&#39;s start by creating the problems&#39; data.</p><pre><code class="language-julia hljs">using Random, LinearAlgebra
+using Monviso, Distributions, JuMP, Clarabel
+
+Random.seed!(2024)
+
+# Problem data
+n, M = 10, 50
+centers = rand(Normal(0, 100), (n, M))
+radii = rand(Normal(30, 100), M) .|&gt; abs</code></pre><p>Then, let&#39;s create the projection operator <span>$\mathbf{P}(\cdot)$</span> and the VI mapping <span>$\mathbf{F}(\cdot)$</span>.</p><pre><code class="language-julia hljs">P(x) = let ds = x .- centers, ms = map(norm, eachcol(x .- centers))
+    reduce(hcat, [m &gt; r ? r .* d ./ m : x for (m, d, r) in zip(ms, eachcol(ds), radii)])
+end
+T(x) = mean(P(x), dims=2)
+F(x) = x .- T(x)</code></pre><p>Finally, let&#39;s instantiate the model and the VI. Note that <span>$\mathcal{X} = \mathbb{R}^n$</span>, so the proximal operator is the identity itself. </p><pre><code class="language-julia hljs">model = Model(Clarabel.Optimizer)
+set_silent(model)
+y = @variable(model, [1:n])
+
+vi = VI(F; y=y, model=model)</code></pre><p>The projection <span>$\mathbf{P}(\cdot)$</span> is merely monotone, so <span>$\mathbf{F}(\cdot)$</span> is merely monotone as well. As examples, we can use the forward-reflected-backward (<a href="../../api/#Monviso.frb"><code>Monviso.frb</code></a>), the projected reflected gradient (<a href="../../api/#Monviso.prg"><code>Monviso.prg</code></a>), and the extra anchored gradient (<a href="../../api/#Monviso.eag"><code>Monviso.eag</code></a>).</p><pre><code class="language-julia hljs">max_iter = 200
+step_size = 0.01
+
+residuals = (
+    frb = Vector{Float32}(undef, max_iter),
+    prg = Vector{Float32}(undef, max_iter),
+    eag = Vector{Float32}(undef, max_iter)
+)
+
+# Initial solution and iterative process
+x0 = rand(n)
+
+let sol_frb = (xk = x0, x1k = x0)
+    sol_prg = (xk = x0, x1k = x0)
+    sol_eag = (xk = x0,)
+
+    for k in 1:max_iter
+        # Forward-reflected-backward
+        xk1_frb = frb(vi, sol_frb..., step_size)
+        residuals.frb[k] = norm(xk1_frb .- sol_frb.xk)
+        sol_frb = (xk = xk1_frb, x1k = sol_frb.xk)
+
+        # Projected reflected gradient
+        xk1_prg = prg(vi, sol_prg..., step_size)
+        residuals.prg[k] = norm(xk1_prg .- sol_prg.xk)
+        sol_prg = (xk = xk1_prg, x1k = sol_prg.xk)
+
+        # Extra anchored gradient
+        xk1_eag = eag(vi, sol_eag..., x0, k, step_size)
+        residuals.eag[k] = norm(xk1_eag .- sol_eag.xk)
+        sol_eag = (xk = xk1_eag,)
+    end
+end</code></pre><p>The API docs have some detail on the <a href="../../api/">convention for naming iterative steps</a>. Let&#39;s check out the residuals for each method.</p><pre><code class="language-julia hljs">using Plots, LaTeXStrings
+
+plot(
+    1:max_iter, [residuals.frb, residuals.prg, residuals.eag];
+    xlabel=L&quot;Iterations ($k$)&quot;,
+    ylabel=L&quot;$||\mathbf{x}_k - \mathbf{x}_{k+1}||$&quot;,
+    labels=[
+        &quot;Forward reflected backward&quot;
+        &quot;Projected-reflected-backward&quot;
+        &quot;Extra anchored gradient&quot;
+    ] |&gt; permutedims,
+    linewidth=2
+)</code></pre><img src="49a1cfea.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../getting-started/">« Getting started</a><a class="docs-footer-nextpage" href="../skew-symmetric/">Skew symmetric »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 22 December 2025 13:58">Monday 22 December 2025</span>. Using Julia version 1.12.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

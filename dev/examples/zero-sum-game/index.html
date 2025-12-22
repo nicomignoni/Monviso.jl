@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Two-players zero-sum games · Monviso.jl</title><meta name="title" content="Two-players zero-sum games · Monviso.jl"/><meta property="og:title" content="Two-players zero-sum games · Monviso.jl"/><meta property="twitter:title" content="Two-players zero-sum games · Monviso.jl"/><meta name="description" content="Documentation for Monviso.jl."/><meta property="og:description" content="Documentation for Monviso.jl."/><meta property="twitter:description" content="Documentation for Monviso.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="Monviso.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Monviso.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting started</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../feasibility-problem/">Feasibility problem</a></li><li><a class="tocitem" href="../skew-symmetric/">Skew symmetric</a></li><li class="is-active"><a class="tocitem" href>Two-players zero-sum games</a></li><li><a class="tocitem" href="../linear-quadratic-game/">Linear-quadratic games</a></li><li><a class="tocitem" href="../markov-process/">Markov decision process</a></li><li><a class="tocitem" href="../logistic-regression/">Logistic regression</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Two-players zero-sum games</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Two-players zero-sum games</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl/blob/master/docs/src/examples/zero-sum-game.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Two-Players-Zero-Sum-Game"><a class="docs-heading-anchor" href="#Two-Players-Zero-Sum-Game">Two Players Zero-Sum Game</a><a id="Two-Players-Zero-Sum-Game-1"></a><a class="docs-heading-anchor-permalink" href="#Two-Players-Zero-Sum-Game" title="Permalink"></a></h1><p>Many example of non-cooperative behavior between two adversarial agents can be modelled through zero-sum games [<a href="../../references/#lemke1964equilibrium">3</a>]. Let us consider vectors <span>$\mathbf{x}_i \in \Delta_i$</span> as the decision variable of the <span>$i$</span>-th player, with <span>$i \in \{1,2\}$</span>, where <span>$\Delta_i \subset \mathbb{R}^{n_i}$</span> is the simplex constraints set defined as <span>$\Delta_i := \{\mathbf{x} \in \mathbb{R}^{n_i} : \mathbf{1}^\top \mathbf{x} = 1\}$</span>, for all <span>$i \in \{1,2\}$</span>. Let <span>$\mathbf{x} := \text{col}(\mathbf{x}_i)_{i = 1}^2$</span>. The set of the combined decisions, for the two agents, is thus <span>$\mathcal{S} = \Delta_1 \times \Delta_2$</span>. Let&#39;s create it: </p><pre><code class="language-julia hljs">using Random, LinearAlgebra
+using Monviso, JuMP, Clarabel
+
+Random.seed!(2024)
+
+n1, n2 = 50, 50
+
+# Simplex constraints&#39; set
+model = Model(Clarabel.Optimizer)
+set_silent(model)
+@variable(model, y[1:n1+n2])
+@constraints(model, begin sum(y[begin:n1]) == 1; sum(y[n1+1:end]) == 1; end)</code></pre><p>The players try to solve the following problem</p><p class="math-container">\[\begin{equation}
+    \min_{\mathbf{x}_1 \in \Delta_1} \max_{\mathbf{x}_2 \in \Delta_2} \Phi(\mathbf{x}_1, \mathbf{x}_2)
+\end{equation}\]</p><p>whose (Nash) equilibrium solution is achieved for <span>$\mathbf{x}^*$</span> satisfying the following</p><p class="math-container">\[\begin{equation}
+    \Phi(\mathbf{x}^*_1, \mathbf{x}_2) \leq \Phi(\mathbf{x}^*_1, \mathbf{x}^*_2) \leq \Phi(\mathbf{x}_1, \mathbf{x}^*_2), \quad \forall \mathbf{x} \in \Delta_1 \times \Delta_2
+\end{equation}\]</p><p>For the sake of simplicity, we consider <span>$\Phi(\mathbf{x}_1, \mathbf{x}_2) := \mathbf{x}^\top_1 \mathbf{H} \mathbf{x}_2$</span>, for some <span>$\mathbf{H} \in \mathbb{R}^{n_1 \times n_2}$</span>. Doing so, the equilibrium condition in the previous equation can be written as a VI, with the mapping <span>$\mathbf{F} : \mathbb{R}^{n_1 + n_2} \to \mathbb{R}^{n_1 + n_2}$</span> defined as</p><p class="math-container">\[\begin{equation}
+    \mathbf{F}(\mathbf{x}) =  \begin{bmatrix} \mathbf{H} \mathbf{x}_2 \\ -\mathbf{H}^\top \mathbf{x}_1 \end{bmatrix} = \begin{bmatrix} &amp; \mathbf{H} \\ -\mathbf{H}^\top &amp; \end{bmatrix} \mathbf{x}
+\end{equation}\]</p><p>Let&#39;s start from creating <span>$\mathbf{H}$</span> and the vector mapping <span>$\mathbf{F}(\cdot)$</span>:</p><pre><code class="language-julia hljs">H = rand(n1, n2)
+H_block = [
+    zeros(n1, n2) H
+    -H&#39; zeros(n1, n2)
+]
+
+F(x) = H_block * x</code></pre><p><span>$\mathbf{F}(\cdot)$</span> is Lipschitz, being linear, with constant <span>$L = 2\|\mathbf{H}\|_2$</span>.</p><pre><code class="language-julia hljs">L = norm(H_block)</code></pre><p>Let&#39;s create the VI associated with the game and an initial solution</p><pre><code class="language-julia hljs">vi = VI(F; y=y, model=model)
+x0 = rand(n1 + n2)</code></pre><p>In this case, <span>$\mathbf{F}(\cdot)$</span> is merely monotone, so we don&#39;t have guarantees for proximal gradient to converge (although it might still be used). However, there are a lot of alternative algorithms for merely monotone VIs. Let&#39;s compare three of them: extragradient (<a href="../../api/#Monviso.eg"><code>Monviso.eg</code></a>), Forward-backward-forward (<a href="../../api/#Monviso.fbf"><code>Monviso.fbf</code></a>), and Popov&#39;s method (<a href="../../api/#Monviso.popov"><code>Monviso.popov</code></a>).</p><pre><code class="language-julia hljs">max_iter = 50
+
+residuals = (
+    eg = Vector{Float32}(undef, max_iter),
+    fbf = Vector{Float32}(undef, max_iter),
+    popov = Vector{Float32}(undef, max_iter)
+)
+
+# Copy the same initial solution for the three methods and iterate
+let xk_eg = deepcopy(x0), xk_fbf = deepcopy(x0), xk_popov = deepcopy(x0), yk_popov = deepcopy(x0)
+    for k in 1:max_iter
+        # Extragradient
+        xk1_eg = eg(vi, xk_eg, 1/L)
+        residuals.eg[k] = norm(xk_eg - xk1_eg)
+        xk_eg = xk1_eg
+
+        # Forward-backward-forward
+        xk1_fbf = fbf(vi, xk_fbf, 1/L)
+        residuals.fbf[k] = norm(xk_fbf - xk1_fbf)
+        xk_fbf = xk1_fbf
+
+        # Popov&#39;s method
+        xk1_popov, yk1_popov = popov(vi, xk_popov, yk_popov, 1/(2L))
+        residuals.popov[k] = norm(xk_popov - xk1_popov)
+        xk_popov = xk1_popov
+        yk_popov = yk1_popov
+    end
+end</code></pre><p>The API docs have some detail on the <a href="../../api/">convention for naming iterative steps</a>. Let&#39;s check out the residuals for each method. </p><pre><code class="language-julia hljs">using Plots, LaTeXStrings
+
+plot(
+    1:max_iter, [residuals.eg, residuals.fbf, residuals.popov];
+    xlabel=L&quot;Iterations ($k$)&quot;,
+    ylabel=L&quot;$||\mathbf{x}_k - \mathbf{x}_{k+1}||$&quot;,
+    labels=[
+        &quot;Extragradient&quot;
+        &quot;Forward-backward-forward&quot;
+        &quot;Popov&#39;s method&quot;
+    ] |&gt; permutedims,
+    linewidth=2
+)</code></pre><img src="002ee8d6.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../skew-symmetric/">« Skew symmetric</a><a class="docs-footer-nextpage" href="../linear-quadratic-game/">Linear-quadratic games »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 22 December 2025 13:58">Monday 22 December 2025</span>. Using Julia version 1.12.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

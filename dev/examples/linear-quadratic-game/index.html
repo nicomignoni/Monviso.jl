@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Linear-quadratic games · Monviso.jl</title><meta name="title" content="Linear-quadratic games · Monviso.jl"/><meta property="og:title" content="Linear-quadratic games · Monviso.jl"/><meta property="twitter:title" content="Linear-quadratic games · Monviso.jl"/><meta name="description" content="Documentation for Monviso.jl."/><meta property="og:description" content="Documentation for Monviso.jl."/><meta property="twitter:description" content="Documentation for Monviso.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="Monviso.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Monviso.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting started</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../feasibility-problem/">Feasibility problem</a></li><li><a class="tocitem" href="../skew-symmetric/">Skew symmetric</a></li><li><a class="tocitem" href="../zero-sum-game/">Two-players zero-sum games</a></li><li class="is-active"><a class="tocitem" href>Linear-quadratic games</a></li><li><a class="tocitem" href="../markov-process/">Markov decision process</a></li><li><a class="tocitem" href="../logistic-regression/">Logistic regression</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Linear-quadratic games</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Linear-quadratic games</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/nicomignoni/Monviso.jl/blob/master/docs/src/examples/linear-quadratic-game.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Linear-Quadratic-Dynamic-Game"><a class="docs-heading-anchor" href="#Linear-Quadratic-Dynamic-Game">Linear-Quadratic Dynamic Game</a><a id="Linear-Quadratic-Dynamic-Game-1"></a><a class="docs-heading-anchor-permalink" href="#Linear-Quadratic-Dynamic-Game" title="Permalink"></a></h1><p>As shown in Proposition 2 in [<a href="../../references/#benenati2024linear">4</a>], the receding horizon open-loop Nash equilibria (NE) can be reformulated as a non-symmetric variational inequality. Specifically, consider a set of agents <span>$\mathcal{N} = \{1,\dots,N\}$</span> characterizing a state vector <span>$\mathbf{x}[t] \in \mathbb{R}^n$</span>, whose (linear) dynamics is described as</p><p class="math-container">\[\begin{equation}
+    \mathbf{x}[t+1] = \mathbf{A}\mathbf{x}[t] + \sum_{i \in \mathcal{N}} \mathbf{B}_i \mathbf{u}_i[t]
+\end{equation}\]</p><p>for <span>$t = 1, \dots, T$</span>. Each agent <span>$i$</span> selfishly tries to choose <span>$\mathbf{u}_i[t] \in \mathbb{R}^m$</span> in order to minimize the following cost function</p><p class="math-container">\[\begin{equation}
+    J_i(\mathbf{u}_i|\mathbf{x}_0, \mathbf{u}_{-i}) = \frac{1}{2}\sum_{t=0}^{T-1} \|\mathbf{x}[t|\mathbf{x}_0, \mathbf{u}]\|^2_{\mathbf{Q}_i} + \|\mathbf{u}_i[t] \|^2_{\mathbf{R}_i}
+\end{equation}\]</p><p>for some <span>$0 \preceq \mathbf{Q}_i \in \mathbb{R}^{n \times n}$</span> and <span>$0 \prec \mathbf{R}_i \in \mathbb{R}^{m \times m}$</span>, with <span>$\mathbf{u}_{-i} = \text{col}(\mathbf{u}_j)_{j \in \mathcal{N}\setminus \{i\}}$</span> and <span>$\mathbf{u}_j = \text{col}(\mathbf{u}_j[t])_{t=1}^T$</span>. Moreover, <span>$\mathbf{u} = \text{col}(\mathbf{u}_i)_{i \in \mathcal{N}}$</span>. The set of feasible inputs, for each agent <span>$i \in \mathcal{N}$</span>, is <span>$\mathcal{U}_i(\mathbf{x}_0,\mathbf{u}_{-i}) := \{\mathbf{u}_i \in \mathbb{R}^{mT} : \mathbf{u}_i[t] \in \mathcal{U}_i(\mathbf{u}_{-i}[t]), \ \forall t = 0,\dots,T-1; \ \mathbf{x}[t|\mathbf{x}_0, \mathbf{u}] \in \mathcal{X}, \ \forall t = 1,\dots,T\}$</span>, where <span>$\mathcal{X} \in \mathbb{R}^n$</span> is the set of feasible system states. Finally, <span>$\mathcal{U}(\mathbf{x}_0) = \{\mathbf{u} \in \mathbb{R}^{mTN}: \mathbf{u}_i \in \mathcal{U}(\mathbf{x}_0,\mathbf{u}_{-i}), \ \forall i \in \mathcal{N}\}$</span>.  Following [<a href="../../references/#benenati2024linear">4</a>, Def. 1], the sequence of input <span>$\mathbf{u}^*_i \in \mathcal{U}_i(\mathbf{x}_0,\mathbf{u}_{-i})$</span>, for all <span>$i \in \mathcal{N}$</span>, characterizes an open-loop NE iff</p><p class="math-container">\[\begin{equation}
+    J(\mathbf{u}^*_i|\mathbf{x}_0,\mathbf{u}^*_{-i}) \leq \inf_{\mathbf{u}_i \in \mathcal{U}_i(\mathbf{x}_0, \mathbf{u}^*_{-i})}\left\{ J(\mathbf{u}^*_i|\mathbf{x}_0,\mathbf{u}_{-i}) \right\}
+\end{equation}\]</p><p>which is satisfied by the fixed-point of the best response mapping of each agent, defined as</p><p class="math-container">\[\begin{equation}
+    \mathbf{u}^*_i = \underset{ {\mathbf{u}_i \in \mathcal{U}(\mathbf{x}_0,\mathbf{u}^*_{-i})} }{ \text{argmin} } J_i(\mathbf{u}_i|\mathbf{x}_0, \mathbf{u}^*_{-i}), \quad \forall i \in \mathcal{N}
+\end{equation}\]</p><p>[<a href="../../references/#benenati2024linear">4</a>, Prop. 1] states that any solution of the canonical VI is a solution for <span>$(4)$</span> when <span>$\mathcal{S} = \mathcal{U}(\mathbf{x}_0)$</span> and <span>$F : \mathbb{R}^{mTN} \to \mathbb{R}^{mTN}$</span>, defined as</p><p class="math-container">\[\begin{equation}
+    F(\mathbf{u}) = \text{col}(\mathbf{G}^\top_i \bar{\mathbf{Q}}_i)_{i \in \mathcal{N}} (\text{row}(\mathbf{G}_i)_{i \in \mathcal{N}}\mathbf{u} + \mathbf{H} \mathbf{x}_0) +
+    \text{blkdiag}(\mathbf{I}_T \otimes \mathbf{R}_i)_{i \in \mathcal{N}} \mathbf{u}
+\end{equation}\]</p><p>where, for all <span>$i \in \mathcal{N}$</span>, <span>$\bar{\mathbf{Q}}_i = \text{blkdiag}(\mathbf{I}_{T-1} \otimes \mathbf{Q}_i, \mathbf{P}_i)$</span>, <span>$\mathbf{G}_i = \mathbf{e}^\top_{1,T} \otimes \text{col}(\mathbf{A}^t_i \mathbf{B}_i)_{t=0}^{T-1} + \mathbf{I}_T \otimes \mathbf{B}_i$</span> and <span>$\mathbf{H} = \text{col}(\mathbf{A}^t)_{t = 1}^T$</span>. Matrix <span>$\mathbf{P}_i$</span> results from the open-loop NE feedback synthesis as discussed in [<a href="../../references/#benenati2024linear">4</a>, Eq. 6].</p><pre><code class="language-julia hljs">using Random, LinearAlgebra
+using Monviso, BlockDiagonals
+
+Random.seed!(2024)
+
+⊗(X, Y) = kron(X, Y)
+e(N, i) = I(N)[:,i]
+
+n, m, N, T = 13, 4, 5, 3
+
+A = rand(n, n)
+Bs = [rand(n, m) for _ in 1:N]
+Qs = [let Q = rand(n, n); Q * Q&#39;; end for _ in 1:N]
+Rs = [let R = rand(m, m); R * R&#39;; end for _ in 1:N]
+P = rand(n, n)
+Q̄s = [BlockDiagonal([I(T - 1) ⊗ Q, P]) for Q in Qs]
+Gs = [I(T) ⊗ B + e(T, 2)&#39; ⊗ mapreduce(t -&gt; A^t * B, vcat, 0:T-1) for B in Bs]
+H = mapreduce(t -&gt; A^t, vcat, 1:T)
+x0 = rand(n)</code></pre><p>Let&#39;s define the mapping <span>$\mathbf{F}(\cdot)$</span> and the constraints set <span>$\mathcal{S}$</span></p><pre><code class="language-julia hljs">using JuMP, Clarabel
+
+# Define the mapping
+F1 = mapreduce((G, Q̄) -&gt; G&#39; * Q̄, vcat, Gs, Q̄s)
+F2 = reduce(hcat, Gs)
+F3 = BlockDiagonal(map(R -&gt; I(T) ⊗ R, Rs))
+F(u) = F1 * (F2 * u + H * x0) + F3 * u
+L = norm(F1 * F2 + F3) + 1
+
+# Define a constraints set for the collective input
+model = Model(Clarabel.Optimizer)
+set_silent(model)
+y = @variable(model, [1:(m * T * N)])
+@constraint(model, y &gt;= 0)</code></pre><p>Then, we can initialize the VI and an initial solution</p><pre><code class="language-julia hljs"># Define the VI and the initial(s) points
+vi = VI(F; y=y, model=model)
+u = rand(m * T * N)</code></pre><p>We can use and compare different algorithms; e.g., fast optimistic gradient descent-ascent (<a href="../../api/#Monviso.fogda"><code>Monviso.fogda</code></a>), golden ratio (<a href="../../api/#Monviso.graal"><code>Monviso.graal</code></a>), adaptive golden ratio (<a href="../../api/#Monviso.agraal"><code>Monviso.agraal</code></a>)</p><pre><code class="language-julia hljs">GOLDEN_RATIO = 0.5(1 + sqrt(5))
+
+max_iter = 50
+
+residuals = (
+    fogda = Vector{Float32}(undef, max_iter),
+    graal = Vector{Float32}(undef, max_iter),
+    agraal = Vector{Float32}(undef, max_iter)
+)
+
+# Initial solution and iterative process
+let sol_fogda = (xk = u, x1k = u, y1k = u),
+    sol_graal = (xk = u, yk = u),
+    sol_agraal = (xk = u, x1k = rand(m*T*N), yk = u, s1k = GOLDEN_RATIO/(2L), tk = 1)
+
+    for k in 1:max_iter
+        # Fast Optimistic Gradient Descent Ascent
+        xk1, yk = fogda(vi, sol_fogda..., k, 1/(4L))
+        residuals.fogda[k] = norm(xk1 - sol_fogda.xk)
+        sol_fogda = (xk = xk1, x1k = sol_fogda.xk, y1k = yk)
+
+        # Golden ratio algorithm
+        xk1, yk1 = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        residuals.graal[k] = norm(xk1 - sol_graal.xk)
+        sol_graal = (xk = xk1, yk = yk1)
+
+        # Adaptive golden ratio algorithm
+        xk1, yk1, sk, tk1 = agraal(vi, sol_agraal...)
+        residuals.agraal[k] = norm(xk1 - sol_agraal.xk)
+        sol_agraal = (xk = xk1, x1k = sol_agraal.xk, y1k = yk1, s1k = sk, tk = tk1)
+    end
+end</code></pre><p>The API docs have some detail on the <a href="../../api/">convention for naming iterative steps</a>. Let&#39;s check out the residuals for each method. </p><pre><code class="language-julia hljs">using Plots, LaTeXStrings
+
+plot(
+    1:max_iter, [residuals.fogda, residuals.graal, residuals.agraal];
+    xlabel=L&quot;Iterations ($k$)&quot;,
+    ylabel=L&quot;$||\mathbf{x}_k - \mathbf{x}_{k+1}||$&quot;,
+    labels=[
+        &quot;Fast Optimistic Gradient Descent Ascent&quot;
+        &quot;Golden ratio algorithm&quot;
+        &quot;Adaptive golden ratio algorithm&quot;
+    ] |&gt; permutedims,
+    linewidth=2
+)</code></pre><img src="8966f93c.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../zero-sum-game/">« Two-players zero-sum games</a><a class="docs-footer-nextpage" href="../markov-process/">Markov decision process »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 22 December 2025 13:58">Monday 22 December 2025</span>. Using Julia version 1.12.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
