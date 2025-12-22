@@ -12,7 +12,7 @@ include("docstrings.jl")
 """
     VI(F::Function, prox::Function)
 
-The variational inequality
+The variational inequality object.
 """
 struct VI
     F::Function
@@ -28,6 +28,8 @@ end
         analytical_prox=nothing,
         norm_cone=MOI.SecondOrderCone
     )
+
+The constructor for [`VI`](@ref).
 
 # Arguments
 $DOCS_F
