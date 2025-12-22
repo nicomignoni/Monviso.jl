@@ -1,8 +1,12 @@
 [deps]
+BlockDiagonals = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
 Clarabel = "61c947e1-3e6d-4ee4-985a-eec8c727bd6e"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Monviso = "1eb86b62-9073-48e6-9f04-fc5a45567986"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"

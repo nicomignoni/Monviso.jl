@@ -6,9 +6,14 @@ makedocs(
     sitename="Monviso.jl",
     pages=[
         "Home" => "index.md",
-        "Getting started" => [
-            "What's a VI?" => "getting-started/whats-a-vi.md",
-            "A basic example" => "getting-started/basic-example.md"
+        "Getting started" => "getting-started.md",
+        "Examples" => [
+            "Feasibility problem" => "examples/feasibility-problem.md",
+            "Skew symmetric" => "examples/skew-symmetric.md",
+            "Two-players zero-sum games" => "examples/zero-sum-game.md",
+            "Linear-quadratic games" => "examples/linear-quadratic-game.md",
+            "Markov decision process" => "examples/markov-process.md",
+            "Logistic regression" => "examples/logistic-regression.md"
         ],
         "API" => "api.md",
         "References" => "references.md"
