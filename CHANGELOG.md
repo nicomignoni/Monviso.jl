@@ -4,6 +4,8 @@
 
 ## TODO
 - Improve testing
+- Make it compliant with DifferentialEquations.jl
+- Not all algorithms rely to prox, some rely on a more general argmin; generalize in this direction.
 
 ## Added
 - Add examples
