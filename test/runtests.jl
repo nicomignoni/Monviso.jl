@@ -24,22 +24,22 @@ y_cv = ComponentVector(@variable(model_cv, [1:length(x_cv)]), getaxes(x_cv))
 
 @testset "Projection, Vector" begin
     # With a constraint set
-    Π = prox(y_vector, model_vector)
+    Π = prox(y=y_vector, model=model_vector)
     @test Π(x_vector) isa Vector 
 
     # Differnent norm
-    Π = prox(y_vector, model_vector, norm_cone=MOI.NormOneCone)
+    Π = prox(y=y_vector, model=model_vector, norm_cone=MOI.NormOneCone)
     @test Π(x_vector) isa Vector
 end
 
 @testset "Projection, ComponentVectors" begin
 
     # With a constraint set
-    Π = prox(y_cv, model_cv)
+    Π = prox(y=y_cv, model=model_cv)
     @test Π(x_cv) isa ComponentVector
 
     # Differnent norm
-    Π = prox(y_cv, model_cv, norm_cone=MOI.NormOneCone)
+    Π = prox(y=y_cv, model=model_cv, norm_cone=MOI.NormOneCone)
     @test Π(x_cv) isa ComponentVector
 end
 
@@ -48,9 +48,9 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    vi = VI(F; y=y_vector, model=model_vector)
     χ = 0.01
-    @test pg(vi, x_vector, χ) isa Vector  
+    pg_iterate = proximal_gradient(F; y=y_vector, model=model_vector)
+    @test pg_iterate(x_vector, χ) isa Vector
 end
 
 @testset "Forward-backward-forward, Vector" begin
@@ -58,9 +58,52 @@ end
     H = H' * H # make positive semidefinite
     F(x) = H * x
 
-    vi = VI(F; y=y_vector, model=model_vector)
     χ = 0.01
-    @test fbf(vi, x_vector, χ) isa Vector  
+    fbf_iterate = forward_backward_forward(F; y=y_vector, model=model_vector)
+    @test fbf_iterate(x_vector, χ) isa Vector
+end
+
+@testset "Closure-based later iterates" begin
+    H = rand(n, n)
+    H = H' * H
+    F(x) = H * x
+
+    χ = 0.01
+    x0 = rand(n)
+    x1 = rand(n)
+    y0 = rand(n)
+    z0 = zeros(n)
+
+    fogda_iterate = fast_optimistic_gradient_descent_ascent(F)
+    x_fogda, y_fogda = fogda_iterate(x0, x1, y0, 1, χ)
+    @test x_fogda isa Vector
+    @test y_fogda isa Vector
+
+    cfogda_iterate = constrained_fast_optimistic_gradient_descent_ascent(F; y=y_vector, model=model_vector)
+    x_cfogda, y_cfogda, z_cfogda = cfogda_iterate(x0, x1, y0, z0, 1, χ)
+    @test x_cfogda isa Vector
+    @test y_cfogda isa Vector
+    @test z_cfogda isa Vector
+
+    graal_iterate = golden_ratio_algorithm(F; y=y_vector, model=model_vector)
+    x_graal, y_graal = graal_iterate(x0, y0, χ)
+    @test x_graal isa Vector
+    @test y_graal isa Vector
+
+    agraal_iterate = adaptive_golden_ratio_algorithm(F; y=y_vector, model=model_vector)
+    x_agraal, y_agraal, s_agraal, t_agraal = agraal_iterate(x0, x1, y0, χ)
+    @test x_agraal isa Vector
+    @test y_agraal isa Vector
+    @test s_agraal isa Real
+    @test t_agraal isa Real
+
+    hgraal_iterate = hybrid_golden_ratio_algorithm_1(F; y=y_vector, model=model_vector)
+    x_hgraal, y_hgraal, s_hgraal, t_hgraal, c_hgraal = hgraal_iterate(x0, x1, y0, χ, 1.0, 1)
+    @test x_hgraal isa Vector
+    @test y_hgraal isa Vector
+    @test s_hgraal isa Real
+    @test t_hgraal isa Real
+    @test c_hgraal isa Int
 end
 
 
@@ -82,6 +125,5 @@ end
 #=F(x) = 2x=#
 #=χ = 0.1=#
 #==#
-#=pg = ProxGradient(x, F, set, optimizer)=#
-#=pg(x, χ)=#
-
+#=proximal_gradient_iterate = ProxGradient(x, F, set, optimizer)=#
+#=proximal_gradient_iterate(x, χ)=#

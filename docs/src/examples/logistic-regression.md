@@ -46,7 +46,7 @@ L = 1.5
 nothing # hide
 ```
 
-Let's instantiate the VI and create an initial point
+Let's instantiate the proximal operator, the iterate functions, and create an initial point
 
 ```@example REGRESSION
 model = Model(Clarabel.Optimizer)
@@ -55,13 +55,16 @@ set_silent(model)
 @variable(model, t)
 @constraint(model, [t; y] in SecondOrderCone())
 
-vi = VI(F; y=y, g=x -> t / γ, model=model)
+Π = prox(x -> t / γ; y=y, model=model)
+hgraal_iter = hybrid_golden_ratio_algorithm_1(F; analytical_prox=Π)
+graal_iter = golden_ratio_algorithm(F; analytical_prox=Π)
+agraal_iter = adaptive_golden_ratio_algorithm(F; analytical_prox=Π)
 x0 = rand(N)
 
 nothing # hide
 ```
 
-As examples, let's use the Hybrid Golden Ratio Algorithm I ([`Monviso.hgraal_1`](@ref)), the Golden ratio algorithm ([`Monviso.graal`](@ref)), and the adaptive golden ratio algorithm ([`Monviso.agraal`](@ref))
+As examples, let's use the Hybrid Golden Ratio Algorithm I ([`Monviso.hybrid_golden_ratio_algorithm_1`](@ref)), the Golden ratio algorithm ([`Monviso.golden_ratio_algorithm`](@ref)), and the adaptive golden ratio algorithm ([`Monviso.adaptive_golden_ratio_algorithm`](@ref))
 
 ```@example REGRESSION
 GOLDEN_RATIO = 0.5(1 + sqrt(5))
@@ -79,17 +82,17 @@ let sol_hgraal = (xk = x0, x1k = rand(N), yk = x0, s1k = GOLDEN_RATIO/(2L), tk =
 
     for k in 1:max_iter
         # Hybrid Golden Ratio Algorithm I
-        xk1, yk1, sk, tk1, ck1 = hgraal_1(vi, sol_hgraal...)
+        xk1, yk1, sk, tk1, ck1 = hgraal_iter(sol_hgraal...)
         residuals.hgraal[k] = norm(xk1 - sol_hgraal.xk)
         sol_hgraal = (xk = xk1, x1k = sol_hgraal.xk, yk = yk1, s1k = sk, tk = tk1, ck = ck1)
     
         # Golden ratio algorithm
-        xk1, yk1 = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        xk1, yk1 = graal_iter(sol_graal..., GOLDEN_RATIO/(2L))
         residuals.graal[k] = norm(xk1 - sol_graal.xk)
         sol_graal = (xk = xk1, yk = yk1)
         
         # Adaptive golden ratio algorithm
-        xk1, yk1, sk, tk1 = agraal(vi, sol_agraal...)
+        xk1, yk1, sk, tk1 = agraal_iter(sol_agraal...)
         residuals.agraal[k] = norm(xk1 - sol_agraal.xk)
         sol_agraal = (xk = xk1, x1k = sol_agraal.xk, yk = yk1, s1k = sk, tk = tk1)
     end
@@ -116,4 +119,3 @@ plot(
     linewidth=2
 )
 ```
-

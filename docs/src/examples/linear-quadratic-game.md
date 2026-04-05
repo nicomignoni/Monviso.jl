@@ -89,17 +89,20 @@ y = @variable(model, [1:(m * T * N)])
 nothing # hide
 ```
 
-Then, we can initialize the VI and an initial solution
+Then, we can initialize the proximal operator, the iterate functions, and an initial solution
 
 ```@example GAME
-# Define the VI and the initial(s) points
-vi = VI(F; y=y, model=model)
+# Define the proximal operator, the iterate functions, and the initial point
+Π = prox(y=y, model=model)
+fogda_iter = fast_optimistic_gradient_descent_ascent(F)
+graal_iter = golden_ratio_algorithm(F; analytical_prox=Π)
+agraal_iter = adaptive_golden_ratio_algorithm(F; analytical_prox=Π)
 u = rand(m * T * N)
 
 nothing # hide
 ```
 
-We can use and compare different algorithms; e.g., fast optimistic gradient descent-ascent ([`Monviso.fogda`](@ref)), golden ratio ([`Monviso.graal`](@ref)), adaptive golden ratio ([`Monviso.agraal`](@ref))
+We can use and compare different algorithms; e.g., fast optimistic gradient descent-ascent ([`Monviso.fast_optimistic_gradient_descent_ascent`](@ref)), golden ratio ([`Monviso.golden_ratio_algorithm`](@ref)), adaptive golden ratio ([`Monviso.adaptive_golden_ratio_algorithm`](@ref))
 
 ```@example GAME
 GOLDEN_RATIO = 0.5(1 + sqrt(5))
@@ -119,19 +122,19 @@ let sol_fogda = (xk = u, x1k = u, y1k = u),
 
     for k in 1:max_iter
         # Fast Optimistic Gradient Descent Ascent 
-        xk1, yk = fogda(vi, sol_fogda..., k, 1/(4L))
+        xk1, yk = fogda_iter(sol_fogda..., k, 1/(4L))
         residuals.fogda[k] = norm(xk1 - sol_fogda.xk)
         sol_fogda = (xk = xk1, x1k = sol_fogda.xk, y1k = yk)
     
         # Golden ratio algorithm
-        xk1, yk1 = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        xk1, yk1 = graal_iter(sol_graal..., GOLDEN_RATIO/(2L))
         residuals.graal[k] = norm(xk1 - sol_graal.xk)
         sol_graal = (xk = xk1, yk = yk1)
     
         # Adaptive golden ratio algorithm
-        xk1, yk1, sk, tk1 = agraal(vi, sol_agraal...)
+        xk1, yk1, sk, tk1 = agraal_iter(sol_agraal...)
         residuals.agraal[k] = norm(xk1 - sol_agraal.xk)
-        sol_agraal = (xk = xk1, x1k = sol_agraal.xk, y1k = yk1, s1k = sk, tk = tk1)
+        sol_agraal = (xk = xk1, x1k = sol_agraal.xk, yk = yk1, s1k = sk, tk = tk1)
     end
 end
 
@@ -155,4 +158,3 @@ plot(
     linewidth=2
 )
 ```
-

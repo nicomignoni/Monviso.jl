@@ -65,16 +65,19 @@ L = norm(H_block)
 nothing # hide
 ```
 
-Let's create the VI associated with the game and an initial solution
+Let's instantiate the proximal operator, the iterate functions associated with the game, and an initial solution
 
 ```@example ZEROSUM
-vi = VI(F; y=y, model=model)
+Π = prox(y=y, model=model)
+eg_iter = extragradient(F; analytical_prox=Π)
+fbf_iter = forward_backward_forward(F; analytical_prox=Π)
+popov_iter = popov(F; analytical_prox=Π)
 x0 = rand(n1 + n2)
 
 nothing # hide
 ```
 
-In this case, ``\mathbf{F}(\cdot)`` is merely monotone, so we don't have guarantees for proximal gradient to converge (although it might still be used). However, there are a lot of alternative algorithms for merely monotone VIs. Let's compare three of them: extragradient ([`Monviso.eg`](@ref)), Forward-backward-forward ([`Monviso.fbf`](@ref)), and Popov's method ([`Monviso.popov`](@ref)).
+In this case, ``\mathbf{F}(\cdot)`` is merely monotone, so we don't have guarantees for proximal gradient to converge (although it might still be used). However, there are a lot of alternative algorithms for merely monotone VIs. Let's compare three of them: extragradient ([`Monviso.extragradient`](@ref)), Forward-backward-forward ([`Monviso.forward_backward_forward`](@ref)), and Popov's method ([`Monviso.popov`](@ref)).
 
 ```@example ZEROSUM
 max_iter = 50
@@ -89,17 +92,17 @@ residuals = (
 let xk_eg = deepcopy(x0), xk_fbf = deepcopy(x0), xk_popov = deepcopy(x0), yk_popov = deepcopy(x0)
     for k in 1:max_iter
         # Extragradient
-        xk1_eg = eg(vi, xk_eg, 1/L)
+        xk1_eg = eg_iter(xk_eg, 1/L)
         residuals.eg[k] = norm(xk_eg - xk1_eg)
         xk_eg = xk1_eg
     
         # Forward-backward-forward
-        xk1_fbf = fbf(vi, xk_fbf, 1/L)
+        xk1_fbf = fbf_iter(xk_fbf, 1/L)
         residuals.fbf[k] = norm(xk_fbf - xk1_fbf)
         xk_fbf = xk1_fbf
     
         # Popov's method
-        xk1_popov, yk1_popov = popov(vi, xk_popov, yk_popov, 1/(2L))
+        xk1_popov, yk1_popov = popov_iter(xk_popov, yk_popov, 1/(2L))
         residuals.popov[k] = norm(xk_popov - xk1_popov)
         xk_popov = xk1_popov
         yk_popov = yk1_popov

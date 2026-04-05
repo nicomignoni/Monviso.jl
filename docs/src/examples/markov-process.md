@@ -22,7 +22,7 @@ Let's start by defining the problem data
 
 ```@example MARKOV
 using Random, LinearAlgebra
-using Monviso, JuMP, Clarabel, Tullio
+using Monviso, Tullio
 
 Random.seed!(2024)
 
@@ -37,25 +37,22 @@ R = rand(num_X, num_X)
 nothing # hide
 ```
 
-Let's define the Bellman operator (as fixed point), the VI mapping, and the initial solution
+Let's define the Bellman operator (as fixed point), the VI mapping, the iterate functions, and the initial solution
 
 ```@example MARKOV
 # Bellman operator
 T(v) = maximum(@tullio [i,j] := P[i,j,k] * (R[i,k] + γ * v[k]); dims=2)
 F(x) = x .- T(x)
 
-# VI 
-model = Model(Clarabel.Optimizer)
-set_silent(model)
-@variable(model, y[1:num_X])
-
-vi = VI(F; y=y, model=model)
+frb_iter = forward_reflected_backward(F)
+prg_iter = projected_reflected_gradient(F)
+eag_iter = extra_anchored_gradient(F)
 x0 = rand(num_X)
 
 nothing # hide
 ```
 
-As examples, we can use the forward-reflected-backward ([`Monviso.frb`](@ref)), the projected reflected gradient ([`Monviso.prg`](@ref)), and the extra anchored gradient ([`Monviso.eag`](@ref)).
+As examples, we can use the forward-reflected-backward ([`Monviso.forward_reflected_backward`](@ref)), the projected reflected gradient ([`Monviso.projected_reflected_gradient`](@ref)), and the extra anchored gradient ([`Monviso.extra_anchored_gradient`](@ref)).
 
 ```@example MARKOV
 max_iter = 300
@@ -74,17 +71,17 @@ let sol_frb = (xk = x0, x1k = x0),
 
     for k in 1:max_iter
         # Forward-reflected-backward
-        xk1 = frb(vi, sol_frb..., step_size)
+        xk1 = frb_iter(sol_frb..., step_size)
         residuals.frb[k] = norm(xk1 - sol_frb.xk)
         sol_frb = (xk = xk1, x1k = sol_frb.xk)
     
         # Projected reflected gradient
-        xk1 = prg(vi, sol_prg..., step_size)
+        xk1 = prg_iter(sol_prg..., step_size)
         residuals.prg[k] = norm(xk1 - sol_prg.xk)
         sol_prg = (xk = xk1, x1k = sol_prg.xk)
     
         # Extra anchored gradient
-        xk1 = eag(vi, sol_eag..., x0, k, step_size)
+        xk1 = eag_iter(sol_eag..., x0, k, step_size)
         residuals.eag[k] = norm(xk1 - sol_eag.xk)
         sol_eag = (xk = xk1,)
     end
@@ -110,4 +107,3 @@ plot(
     linewidth=2
 )
 ```
-

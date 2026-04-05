@@ -40,8 +40,8 @@ y = @variable(model, [1:n])
 @constraint(model, A * y <= b),
 @constraint(model, y >= 0)
 
-# Instantitate the VI 
-vi = VI(F; y=y, model=model)
+# Instantiate the proximal gradient iterate
+pg_iter = proximal_gradient(F; y=y, model=model)
 
 # Define the initial point, step-size, and max number of iterations
 x = rand(n) .+ 4
@@ -51,7 +51,7 @@ T = 10
 # Solve the VI using the proximal gradient iterate
 residual = zeros(T)
 for τ in 1:T
-    x⁺ = pg(vi, x, χ)
+    x⁺ = pg_iter(x, χ)
     residual[τ] = norm(x .- x⁺) 
     x[:] = x⁺
 end

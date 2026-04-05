@@ -36,7 +36,7 @@ Let's start by creating the problems' data.
 
 ```@example FEASIBILITY
 using Random, LinearAlgebra
-using Monviso, Distributions, JuMP, Clarabel
+using Monviso, Distributions
 
 Random.seed!(2024)
 
@@ -60,19 +60,17 @@ F(x) = x .- T(x)
 nothing # hide
 ```
 
-Finally, let's instantiate the model and the VI. Note that $\mathcal{X} = \mathbb{R}^n$, so the proximal operator is the identity itself. 
+Finally, let's instantiate the iterate functions. Note that $\mathcal{X} = \mathbb{R}^n$, so the proximal operator is the identity itself. 
 
 ```@example FEASIBILITY
-model = Model(Clarabel.Optimizer)
-set_silent(model)
-y = @variable(model, [1:n])
-
-vi = VI(F; y=y, model=model)
+frb_iter = forward_reflected_backward(F)
+prg_iter = projected_reflected_gradient(F)
+eag_iter = extra_anchored_gradient(F)
 
 nothing # hide
 ```
 
-The projection $\mathbf{P}(\cdot)$ is merely monotone, so $\mathbf{F}(\cdot)$ is merely monotone as well. As examples, we can use the forward-reflected-backward ([`Monviso.frb`](@ref)), the projected reflected gradient ([`Monviso.prg`](@ref)), and the extra anchored gradient ([`Monviso.eag`](@ref)).
+The projection $\mathbf{P}(\cdot)$ is merely monotone, so $\mathbf{F}(\cdot)$ is merely monotone as well. As examples, we can use the forward-reflected-backward ([`Monviso.forward_reflected_backward`](@ref)), the projected reflected gradient ([`Monviso.projected_reflected_gradient`](@ref)), and the extra anchored gradient ([`Monviso.extra_anchored_gradient`](@ref)).
 
 ```@example FEASIBILITY
 max_iter = 200
@@ -93,17 +91,17 @@ let sol_frb = (xk = x0, x1k = x0)
 
     for k in 1:max_iter
         # Forward-reflected-backward
-        xk1_frb = frb(vi, sol_frb..., step_size)
+        xk1_frb = frb_iter(sol_frb..., step_size)
         residuals.frb[k] = norm(xk1_frb .- sol_frb.xk)
         sol_frb = (xk = xk1_frb, x1k = sol_frb.xk)
     
         # Projected reflected gradient
-        xk1_prg = prg(vi, sol_prg..., step_size)
+        xk1_prg = prg_iter(sol_prg..., step_size)
         residuals.prg[k] = norm(xk1_prg .- sol_prg.xk)
         sol_prg = (xk = xk1_prg, x1k = sol_prg.xk)
     
         # Extra anchored gradient
-        xk1_eag = eag(vi, sol_eag..., x0, k, step_size)
+        xk1_eag = eag_iter(sol_eag..., x0, k, step_size)
         residuals.eag[k] = norm(xk1_eag .- sol_eag.xk)
         sol_eag = (xk = xk1_eag,)
     end

@@ -12,7 +12,7 @@ for a given ``M \in \mathbb{N}``, where ``\mathbf{A}_i = \text{tril}(\mathbf{B}_
 
 ```@example SKEW
 using Random, LinearAlgebra
-using Monviso, BlockDiagonals, JuMP, Clarabel
+using Monviso, BlockDiagonals
 
 Random.seed!(2024)
 
@@ -33,21 +33,18 @@ L = norm(A)
 nothing # hide
 ```
 
-Finally, let's create the VI problem and an initial solution
+Finally, let's create the iterate functions and an initial solution
 
 ```@example SKEW
-model = Model(Clarabel.Optimizer)
-set_silent(model)
-@variable(model, y[1:N*M])
-
-vi = VI(F; y=y, model=model)
-
+fogda_iter = fast_optimistic_gradient_descent_ascent(F)
+graal_iter = golden_ratio_algorithm(F)
+agraal_iter = adaptive_golden_ratio_algorithm(F)
 x0 = rand(N * M)
 
 nothing # hide
 ```
 
-The vector map $\mathbf{F}(\cdot)$ is merely monotone; we can use and compare three different algorithms: fast optimistic gradient descent-ascent ([`Monviso.fogda`](@ref)), golden ratio ([`Monviso.graal`](@ref)), adaptive golden ratio ([`Monviso.agraal`](@ref))
+The vector map $\mathbf{F}(\cdot)$ is merely monotone; we can use and compare three different algorithms: fast optimistic gradient descent-ascent ([`Monviso.fast_optimistic_gradient_descent_ascent`](@ref)), golden ratio ([`Monviso.golden_ratio_algorithm`](@ref)), adaptive golden ratio ([`Monviso.adaptive_golden_ratio_algorithm`](@ref))
 
 ```@example SKEW
 GOLDEN_RATIO = 0.5(1 + sqrt(5))
@@ -67,17 +64,17 @@ let sol_fogda = (xk = x0, x1k = x0, y1k = x0),
     
     for k in 1:max_iter
         # Fast Optimistic Gradient Descent Ascent 
-        xk1_fogda, yk_fogda = fogda(vi, sol_fogda..., k, 1/(4L))
+        xk1_fogda, yk_fogda = fogda_iter(sol_fogda..., k, 1/(4L))
         residuals.fogda[k] = norm(xk1_fogda - sol_fogda.xk)
         sol_fogda = (xk = xk1_fogda, x1k = sol_fogda.xk, y1k = yk_fogda)
     
         # Golden ratio algorithm
-        xk1_graal, yk1_graal = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        xk1_graal, yk1_graal = graal_iter(sol_graal..., GOLDEN_RATIO/(2L))
         residuals.graal[k] = norm(xk1_graal - sol_graal.xk)
         sol_graal = (xk = xk1_graal, yk = yk1_graal)
     
         # Adaptive golden ratio algorithm
-        xk1_agraal, yk1_agraal, sk_agraal, tk1_agraal = agraal(vi, sol_agraal...)
+        xk1_agraal, yk1_agraal, sk_agraal, tk1_agraal = agraal_iter(sol_agraal...)
         residuals.agraal[k] = norm(xk1_agraal - sol_agraal.xk)
         sol_agraal = (xk = xk1_agraal, x1k = sol_agraal.xk, yk = yk1_agraal, s1k = sk_agraal, tk = tk1_agraal)
     end
@@ -104,8 +101,6 @@ plot(
     linewidth=2
 )
 ```
-
-
 
 
 
