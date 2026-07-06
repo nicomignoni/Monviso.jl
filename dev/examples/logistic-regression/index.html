@@ -16,14 +16,17 @@ N, M = 500, 200
 A = rand(Normal(0, 1), (M, N))
 b = 2round.(rand(M)) .- 1
 γ = 0.005norm(A&#39; * b, Inf)</code></pre><p>From the definition, <span>$\mathbf{F}(\cdot)$</span> and <span>$g(\cdot)$</span> are defined as</p><pre><code class="language-julia hljs">F(x) = -sum((A&#39; .* repeat(b&#39;, N)) .* exp.(-b .* A * x)&#39; ./ (1 .+ exp.(-b .* A * x))&#39;; dims=2)
-L = 1.5</code></pre><p>Let&#39;s instantiate the VI and create an initial point</p><pre><code class="language-julia hljs">model = Model(Clarabel.Optimizer)
+L = 1.5</code></pre><p>Let&#39;s instantiate the proximal operator, the iterate functions, and create an initial point</p><pre><code class="language-julia hljs">model = Model(Clarabel.Optimizer)
 set_silent(model)
 @variable(model, y[1:N])
 @variable(model, t)
 @constraint(model, [t; y] in SecondOrderCone())
 
-vi = VI(F; y=y, g=x -&gt; t / γ, model=model)
-x0 = rand(N)</code></pre><p>As examples, let&#39;s use the Hybrid Golden Ratio Algorithm I (<a href="../../api/#Monviso.hgraal_1-Tuple{VI, AbstractArray, AbstractArray, AbstractArray, Real, Real, Int64, Vararg{Any}}"><code>Monviso.hgraal_1</code></a>), the Golden ratio algorithm (<a href="../../api/#Monviso.graal-Tuple{VI, AbstractArray, AbstractArray, Real, Vararg{Any}}"><code>Monviso.graal</code></a>), and the adaptive golden ratio algorithm (<a href="../../api/#Monviso.agraal"><code>Monviso.agraal</code></a>)</p><pre><code class="language-julia hljs">GOLDEN_RATIO = 0.5(1 + sqrt(5))
+Π = prox(x -&gt; t / γ; y=y, model=model)
+hgraal_iter = hybrid_golden_ratio_algorithm_1(F; analytical_prox=Π)
+graal_iter = golden_ratio_algorithm(F; analytical_prox=Π)
+agraal_iter = adaptive_golden_ratio_algorithm(F; analytical_prox=Π)
+x0 = rand(N)</code></pre><p>As examples, let&#39;s use the Hybrid Golden Ratio Algorithm I (<a href="../../api/#Monviso.hybrid_golden_ratio_algorithm_1-Tuple{Any}"><code>Monviso.hybrid_golden_ratio_algorithm_1</code></a>), the Golden ratio algorithm (<a href="../../api/#Monviso.golden_ratio_algorithm-Tuple{Any}"><code>Monviso.golden_ratio_algorithm</code></a>), and the adaptive golden ratio algorithm (<a href="../../api/#Monviso.adaptive_golden_ratio_algorithm-Tuple{Any}"><code>Monviso.adaptive_golden_ratio_algorithm</code></a>)</p><pre><code class="language-julia hljs">GOLDEN_RATIO = 0.5(1 + sqrt(5))
 max_iter = 20
 
 residuals = (
@@ -38,17 +41,17 @@ let sol_hgraal = (xk = x0, x1k = rand(N), yk = x0, s1k = GOLDEN_RATIO/(2L), tk =
 
     for k in 1:max_iter
         # Hybrid Golden Ratio Algorithm I
-        xk1, yk1, sk, tk1, ck1 = hgraal_1(vi, sol_hgraal...)
+        xk1, yk1, sk, tk1, ck1 = hgraal_iter(sol_hgraal...)
         residuals.hgraal[k] = norm(xk1 - sol_hgraal.xk)
         sol_hgraal = (xk = xk1, x1k = sol_hgraal.xk, yk = yk1, s1k = sk, tk = tk1, ck = ck1)
 
         # Golden ratio algorithm
-        xk1, yk1 = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        xk1, yk1 = graal_iter(sol_graal..., GOLDEN_RATIO/(2L))
         residuals.graal[k] = norm(xk1 - sol_graal.xk)
         sol_graal = (xk = xk1, yk = yk1)
 
         # Adaptive golden ratio algorithm
-        xk1, yk1, sk, tk1 = agraal(vi, sol_agraal...)
+        xk1, yk1, sk, tk1 = agraal_iter(sol_agraal...)
         residuals.agraal[k] = norm(xk1 - sol_agraal.xk)
         sol_agraal = (xk = xk1, x1k = sol_agraal.xk, yk = yk1, s1k = sk, tk = tk1)
     end
@@ -64,4 +67,4 @@ plot(
         &quot;Adaptive golden ratio algorithm&quot;
     ] |&gt; permutedims,
     linewidth=2
-)</code></pre><img src="fe437fe6.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../markov-process/">« Markov decision process</a><a class="docs-footer-nextpage" href="../../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 22 February 2026 17:08">Sunday 22 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><img src="ed9c0e98.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../markov-process/">« Markov decision process</a><a class="docs-footer-nextpage" href="../../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 6 July 2026 12:34">Monday 6 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

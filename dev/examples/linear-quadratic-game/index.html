@@ -41,9 +41,12 @@ L = norm(F1 * F2 + F3) + 1
 model = Model(Clarabel.Optimizer)
 set_silent(model)
 y = @variable(model, [1:(m * T * N)])
-@constraint(model, y &gt;= 0)</code></pre><p>Then, we can initialize the VI and an initial solution</p><pre><code class="language-julia hljs"># Define the VI and the initial(s) points
-vi = VI(F; y=y, model=model)
-u = rand(m * T * N)</code></pre><p>We can use and compare different algorithms; e.g., fast optimistic gradient descent-ascent (<a href="../../api/#Monviso.fogda-Tuple{VI, AbstractArray, AbstractArray, AbstractArray, Int64, Real, Vararg{Any}}"><code>Monviso.fogda</code></a>), golden ratio (<a href="../../api/#Monviso.graal-Tuple{VI, AbstractArray, AbstractArray, Real, Vararg{Any}}"><code>Monviso.graal</code></a>), adaptive golden ratio (<a href="../../api/#Monviso.agraal"><code>Monviso.agraal</code></a>)</p><pre><code class="language-julia hljs">GOLDEN_RATIO = 0.5(1 + sqrt(5))
+@constraint(model, y &gt;= 0)</code></pre><p>Then, we can initialize the proximal operator, the iterate functions, and an initial solution</p><pre><code class="language-julia hljs"># Define the proximal operator, the iterate functions, and the initial point
+Π = prox(y=y, model=model)
+fogda_iter = fast_optimistic_gradient_descent_ascent(F)
+graal_iter = golden_ratio_algorithm(F; analytical_prox=Π)
+agraal_iter = adaptive_golden_ratio_algorithm(F; analytical_prox=Π)
+u = rand(m * T * N)</code></pre><p>We can use and compare different algorithms; e.g., fast optimistic gradient descent-ascent (<a href="../../api/#Monviso.fast_optimistic_gradient_descent_ascent-Tuple{Any}"><code>Monviso.fast_optimistic_gradient_descent_ascent</code></a>), golden ratio (<a href="../../api/#Monviso.golden_ratio_algorithm-Tuple{Any}"><code>Monviso.golden_ratio_algorithm</code></a>), adaptive golden ratio (<a href="../../api/#Monviso.adaptive_golden_ratio_algorithm-Tuple{Any}"><code>Monviso.adaptive_golden_ratio_algorithm</code></a>)</p><pre><code class="language-julia hljs">GOLDEN_RATIO = 0.5(1 + sqrt(5))
 
 max_iter = 50
 
@@ -60,19 +63,19 @@ let sol_fogda = (xk = u, x1k = u, y1k = u),
 
     for k in 1:max_iter
         # Fast Optimistic Gradient Descent Ascent
-        xk1, yk = fogda(vi, sol_fogda..., k, 1/(4L))
+        xk1, yk = fogda_iter(sol_fogda..., k, 1/(4L))
         residuals.fogda[k] = norm(xk1 - sol_fogda.xk)
         sol_fogda = (xk = xk1, x1k = sol_fogda.xk, y1k = yk)
 
         # Golden ratio algorithm
-        xk1, yk1 = graal(vi, sol_graal..., GOLDEN_RATIO/(2L))
+        xk1, yk1 = graal_iter(sol_graal..., GOLDEN_RATIO/(2L))
         residuals.graal[k] = norm(xk1 - sol_graal.xk)
         sol_graal = (xk = xk1, yk = yk1)
 
         # Adaptive golden ratio algorithm
-        xk1, yk1, sk, tk1 = agraal(vi, sol_agraal...)
+        xk1, yk1, sk, tk1 = agraal_iter(sol_agraal...)
         residuals.agraal[k] = norm(xk1 - sol_agraal.xk)
-        sol_agraal = (xk = xk1, x1k = sol_agraal.xk, y1k = yk1, s1k = sk, tk = tk1)
+        sol_agraal = (xk = xk1, x1k = sol_agraal.xk, yk = yk1, s1k = sk, tk = tk1)
     end
 end</code></pre><p>The API docs have some detail on the <a href="../../api/">convention for naming iterative steps</a>. Let&#39;s check out the residuals for each method. </p><pre><code class="language-julia hljs">using Plots, LaTeXStrings
 
@@ -86,4 +89,4 @@ plot(
         &quot;Adaptive golden ratio algorithm&quot;
     ] |&gt; permutedims,
     linewidth=2
-)</code></pre><img src="c43ad513.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../zero-sum-game/">« Two-players zero-sum games</a><a class="docs-footer-nextpage" href="../markov-process/">Markov decision process »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 22 February 2026 17:08">Sunday 22 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><img src="45c7d2cb.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../zero-sum-game/">« Two-players zero-sum games</a><a class="docs-footer-nextpage" href="../markov-process/">Markov decision process »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 6 July 2026 12:34">Monday 6 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

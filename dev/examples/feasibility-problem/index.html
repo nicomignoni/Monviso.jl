@@ -12,7 +12,7 @@
 \end{equation}\]</p><p>Due to the non-expansiveness of the projection in <span>$(2)$</span>, one can find a solution for <span>$(1)$</span> as the fixed point of the following iterate </p><p class="math-container">\[\begin{equation}
     \mathbf{x}_{k+1} = \mathbf{T}(\mathbf{x}_k) = \frac{1}{M}\sum_{i = 1}^M\mathbf{P}_i(\mathbf{x}_k) 
 \end{equation}\]</p><p>which result from the well-known Krasnoselskii-Mann iterate. By letting <span>$\mathbf{F} = \mathbf{I} - \mathbf{T}$</span>, where <span>$\mathbf{I}$</span> denotes the identity operator, the fixed point for <span>$(3)$</span> can be treated as the canonical VI [<a href="../../references/#bauschke1996projection">1</a>]. </p><p>Let&#39;s start by creating the problems&#39; data.</p><pre><code class="language-julia hljs">using Random, LinearAlgebra
-using Monviso, Distributions, JuMP, Clarabel
+using Monviso, Distributions
 
 Random.seed!(2024)
 
@@ -23,11 +23,9 @@ radii = rand(Normal(30, 100), M) .|&gt; abs</code></pre><p>Then, let&#39;s creat
     reduce(hcat, [m &gt; r ? r .* d ./ m : x for (m, d, r) in zip(ms, eachcol(ds), radii)])
 end
 T(x) = mean(P(x), dims=2)
-F(x) = x .- T(x)</code></pre><p>Finally, let&#39;s instantiate the model and the VI. Note that <span>$\mathcal{X} = \mathbb{R}^n$</span>, so the proximal operator is the identity itself. </p><pre><code class="language-julia hljs">model = Model(Clarabel.Optimizer)
-set_silent(model)
-y = @variable(model, [1:n])
-
-vi = VI(F; y=y, model=model)</code></pre><p>The projection <span>$\mathbf{P}(\cdot)$</span> is merely monotone, so <span>$\mathbf{F}(\cdot)$</span> is merely monotone as well. As examples, we can use the forward-reflected-backward (<a href="../../api/#Monviso.frb-Tuple{VI, AbstractArray, AbstractArray, Real, Vararg{Any}}"><code>Monviso.frb</code></a>), the projected reflected gradient (<a href="../../api/#Monviso.prg-Tuple{VI, AbstractArray, AbstractArray, Real, Vararg{Any}}"><code>Monviso.prg</code></a>), and the extra anchored gradient (<a href="../../api/#Monviso.eag-Tuple{VI, AbstractArray, AbstractArray, Int64, Real, Vararg{Any}}"><code>Monviso.eag</code></a>).</p><pre><code class="language-julia hljs">max_iter = 200
+F(x) = x .- T(x)</code></pre><p>Finally, let&#39;s instantiate the iterate functions. Note that <span>$\mathcal{X} = \mathbb{R}^n$</span>, so the proximal operator is the identity itself. </p><pre><code class="language-julia hljs">frb_iter = forward_reflected_backward(F)
+prg_iter = projected_reflected_gradient(F)
+eag_iter = extra_anchored_gradient(F)</code></pre><p>The projection <span>$\mathbf{P}(\cdot)$</span> is merely monotone, so <span>$\mathbf{F}(\cdot)$</span> is merely monotone as well. As examples, we can use the forward-reflected-backward (<a href="../../api/#Monviso.forward_reflected_backward-Tuple{Any}"><code>Monviso.forward_reflected_backward</code></a>), the projected reflected gradient (<a href="../../api/#Monviso.projected_reflected_gradient-Tuple{Any}"><code>Monviso.projected_reflected_gradient</code></a>), and the extra anchored gradient (<a href="../../api/#Monviso.extra_anchored_gradient-Tuple{Any}"><code>Monviso.extra_anchored_gradient</code></a>).</p><pre><code class="language-julia hljs">max_iter = 200
 step_size = 0.01
 
 residuals = (
@@ -45,17 +43,17 @@ let sol_frb = (xk = x0, x1k = x0)
 
     for k in 1:max_iter
         # Forward-reflected-backward
-        xk1_frb = frb(vi, sol_frb..., step_size)
+        xk1_frb = frb_iter(sol_frb..., step_size)
         residuals.frb[k] = norm(xk1_frb .- sol_frb.xk)
         sol_frb = (xk = xk1_frb, x1k = sol_frb.xk)
 
         # Projected reflected gradient
-        xk1_prg = prg(vi, sol_prg..., step_size)
+        xk1_prg = prg_iter(sol_prg..., step_size)
         residuals.prg[k] = norm(xk1_prg .- sol_prg.xk)
         sol_prg = (xk = xk1_prg, x1k = sol_prg.xk)
 
         # Extra anchored gradient
-        xk1_eag = eag(vi, sol_eag..., x0, k, step_size)
+        xk1_eag = eag_iter(sol_eag..., x0, k, step_size)
         residuals.eag[k] = norm(xk1_eag .- sol_eag.xk)
         sol_eag = (xk = xk1_eag,)
     end
@@ -71,4 +69,4 @@ plot(
         &quot;Extra anchored gradient&quot;
     ] |&gt; permutedims,
     linewidth=2
-)</code></pre><img src="81338577.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../getting-started/">« Getting started</a><a class="docs-footer-nextpage" href="../skew-symmetric/">Skew symmetric »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 22 February 2026 17:08">Sunday 22 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><img src="aeb7ea54.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../getting-started/">« Getting started</a><a class="docs-footer-nextpage" href="../skew-symmetric/">Skew symmetric »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 6 July 2026 12:34">Monday 6 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

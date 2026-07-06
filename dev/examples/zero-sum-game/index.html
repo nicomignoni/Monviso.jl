@@ -22,8 +22,11 @@ H_block = [
     -H&#39; zeros(n1, n2)
 ]
 
-F(x) = H_block * x</code></pre><p><span>$\mathbf{F}(\cdot)$</span> is Lipschitz, being linear, with constant <span>$L = 2\|\mathbf{H}\|_2$</span>.</p><pre><code class="language-julia hljs">L = norm(H_block)</code></pre><p>Let&#39;s create the VI associated with the game and an initial solution</p><pre><code class="language-julia hljs">vi = VI(F; y=y, model=model)
-x0 = rand(n1 + n2)</code></pre><p>In this case, <span>$\mathbf{F}(\cdot)$</span> is merely monotone, so we don&#39;t have guarantees for proximal gradient to converge (although it might still be used). However, there are a lot of alternative algorithms for merely monotone VIs. Let&#39;s compare three of them: extragradient (<a href="../../api/#Monviso.eg-Tuple{VI, AbstractArray, Real, Vararg{Any}}"><code>Monviso.eg</code></a>), Forward-backward-forward (<a href="../../api/#Monviso.fbf-Tuple{VI, AbstractArray, Real, Vararg{Any}}"><code>Monviso.fbf</code></a>), and Popov&#39;s method (<a href="../../api/#Monviso.popov-Tuple{VI, AbstractArray, AbstractArray, Real, Vararg{Any}}"><code>Monviso.popov</code></a>).</p><pre><code class="language-julia hljs">max_iter = 50
+F(x) = H_block * x</code></pre><p><span>$\mathbf{F}(\cdot)$</span> is Lipschitz, being linear, with constant <span>$L = 2\|\mathbf{H}\|_2$</span>.</p><pre><code class="language-julia hljs">L = norm(H_block)</code></pre><p>Let&#39;s instantiate the proximal operator, the iterate functions associated with the game, and an initial solution</p><pre><code class="language-julia hljs">Π = prox(y=y, model=model)
+eg_iter = extragradient(F; analytical_prox=Π)
+fbf_iter = forward_backward_forward(F; analytical_prox=Π)
+popov_iter = popov(F; analytical_prox=Π)
+x0 = rand(n1 + n2)</code></pre><p>In this case, <span>$\mathbf{F}(\cdot)$</span> is merely monotone, so we don&#39;t have guarantees for proximal gradient to converge (although it might still be used). However, there are a lot of alternative algorithms for merely monotone VIs. Let&#39;s compare three of them: extragradient (<a href="../../api/#Monviso.extragradient-Tuple{Any}"><code>Monviso.extragradient</code></a>), Forward-backward-forward (<a href="../../api/#Monviso.forward_backward_forward-Tuple{Any}"><code>Monviso.forward_backward_forward</code></a>), and Popov&#39;s method (<a href="../../api/#Monviso.popov-Tuple{Any}"><code>Monviso.popov</code></a>).</p><pre><code class="language-julia hljs">max_iter = 50
 
 residuals = (
     eg = Vector{Float32}(undef, max_iter),
@@ -35,17 +38,17 @@ residuals = (
 let xk_eg = deepcopy(x0), xk_fbf = deepcopy(x0), xk_popov = deepcopy(x0), yk_popov = deepcopy(x0)
     for k in 1:max_iter
         # Extragradient
-        xk1_eg = eg(vi, xk_eg, 1/L)
+        xk1_eg = eg_iter(xk_eg, 1/L)
         residuals.eg[k] = norm(xk_eg - xk1_eg)
         xk_eg = xk1_eg
 
         # Forward-backward-forward
-        xk1_fbf = fbf(vi, xk_fbf, 1/L)
+        xk1_fbf = fbf_iter(xk_fbf, 1/L)
         residuals.fbf[k] = norm(xk_fbf - xk1_fbf)
         xk_fbf = xk1_fbf
 
         # Popov&#39;s method
-        xk1_popov, yk1_popov = popov(vi, xk_popov, yk_popov, 1/(2L))
+        xk1_popov, yk1_popov = popov_iter(xk_popov, yk_popov, 1/(2L))
         residuals.popov[k] = norm(xk_popov - xk1_popov)
         xk_popov = xk1_popov
         yk_popov = yk1_popov
@@ -62,4 +65,4 @@ plot(
         &quot;Popov&#39;s method&quot;
     ] |&gt; permutedims,
     linewidth=2
-)</code></pre><img src="b9339e63.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../skew-symmetric/">« Skew symmetric</a><a class="docs-footer-nextpage" href="../linear-quadratic-game/">Linear-quadratic games »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 22 February 2026 17:08">Sunday 22 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><img src="e77d73f1.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../skew-symmetric/">« Skew symmetric</a><a class="docs-footer-nextpage" href="../linear-quadratic-game/">Linear-quadratic games »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 6 July 2026 12:34">Monday 6 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
