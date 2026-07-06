@@ -14,7 +14,7 @@
 Install `Monviso.jl` from the Julia REPL
 
 ```julia
-] add https://github.com/nicomignoni/Monviso.jl.git
+] add https://github.com/nicomignoni/Monviso.jl.gi#vi-based
 ```
 
 Check out the [docs](https://nicomignoni.github.io/Monviso.jl/dev/) for a quickstart. 
