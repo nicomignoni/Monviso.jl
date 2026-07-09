@@ -1,6 +1,6 @@
 name = "Monviso"
 uuid = "1eb86b62-9073-48e6-9f04-fc5a45567986"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Nicola Mignoni"]
 
 [deps]
