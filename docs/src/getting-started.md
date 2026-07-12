@@ -5,7 +5,7 @@ If you're already familiar with [variational inequalities](https://en.wikipedia.
 Given a [vector mapping](https://en.wikipedia.org/wiki/Vector-valued_function) $\mathbf{F} : \mathbb{R}^n \to \mathbb{R}^n$ and a scalar [convex](https://en.wikipedia.org/wiki/Convex_function) (possibly [non-smooth](https://en.wikipedia.org/wiki/Smoothness)) function $g : \mathbb{R}^n \to \mathbb{R}$, solving a VI consists of solving the following 
 
 ```math
-    \text{find } \mathbf{x}^* \in \mathbb{R}^n \text{ such that } (\mathbf{x} - \mathbf{x}^*)^\top \mathbf{F}(\mathbf{x}^*) - g(\mathbf{x}) - g(\mathbf{x}^*) \geq 0, \quad \forall \mathbf{x} \in \mathbb{R}^n.
+    \text{find } \mathbf{x}^* \in \mathbb{R}^n \text{ such that } (\mathbf{x} - \mathbf{x}^*)^\top \mathbf{F}(\mathbf{x}^*) + g(\mathbf{x}) - g(\mathbf{x}^*) \geq 0, \quad \forall \mathbf{x} \in \mathbb{R}^n.
 ```
 
 It turns out that a lot of problems in optimal control, optimization, machine learning, game theory, finance, and much more, boil down to solving some instance of such a VI problem. Such a problem is usually solved through iterative methods: one constructs an algorithm that produces a $\mathbf{x}_k$ at each iteration $k$ such that $\mathbf{x}_k \to \mathbf{x}^*$ when $k \to \infty$. 
@@ -40,18 +40,18 @@ y = @variable(model, [1:n])
 @constraint(model, A * y <= b),
 @constraint(model, y >= 0)
 
-# Instantiate the proximal gradient iterate
-pg_iter = proximal_gradient(F; y=y, model=model)
+# Instantiate the forward backward iterate
+fb_iter = forward_backward(F; y=y, model=model)
 
 # Define the initial point, step-size, and max number of iterations
 x = rand(n) .+ 4
 χ = 2/L^2
 T = 10
 
-# Solve the VI using the proximal gradient iterate
+# Solve the VI using the forward backward iterate
 residual = zeros(T)
 for τ in 1:T
-    x⁺ = pg_iter(x, χ)
+    x⁺ = fb_iter(x, χ)
     residual[τ] = norm(x .- x⁺) 
     x[:] = x⁺
 end

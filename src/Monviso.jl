@@ -4,7 +4,7 @@ using JuMP, LinearAlgebra
 using MathOptInterface: MathOptInterface as MOI
 
 export prox,
-    proximal_gradient,
+    forward_backward,
     extragradient,
     popov,
     forward_backward_forward,
@@ -67,7 +67,38 @@ function residual(F::Function, Π::Function, x::AbstractArray, params...)
 end
 
 """
-    proximal_gradient(
+    forward_backward(A, R_B)
+
+The forward backward iterate.
+
+# Description
+Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
+``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
+``\\mathbf{B}`` are maximal monotone. Let
+``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
+``\\mathbf{B}``. The forward-backward 
+[passty1979ergodic](@cite) iteration for this setup is
+
+```math
+\\begin{align*}
+    \\mathbf{x}_{k+1} = R_{\\mathbf{B}}(\\mathbf{x}_k - \\chi \\mathbf{A}(\\mathbf{x}_k))
+\\end{align*}
+```
+
+Convergence is guaranteed for Lipschitz strongly monotone ``\\mathbf{A}``, 
+with monotone constant ``\\mu > 0`` and Lipshitz constants 
+``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
+"""
+function forward_backward(A, R_B)
+    function iterate(xk::AbstractArray, χ::Real, A_args = (), R_B_args = ())  
+        xk1 = R_B(xk .- χ * A(xk, A_args...), R_B_args...)
+        return xk1
+    end 
+    return iterate
+end
+
+"""
+    forward_backward(
         F; 
         g = x -> 0,
         y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
@@ -76,23 +107,18 @@ end
         analytical_prox = identity
     )
 
-The proximal gradient iterate. 
+The VI-oriented forward backward iterate. 
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in 
-\\mathbb{R}^n``, the basic ``k``-th iterate of the proximal gradient (PG) algorithm is 
-[nemirovskij1983problem](@cite):
-
-```math
-\\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
-\\mathbf{F}(\\mathbf{x}_k))
-```
-
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence 
-of PG is guaranteed for Lipschitz strongly monotone operators, with monotone constant 
-``\\mu > 0`` and Lipshitz constants ``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
+It corresponds to [`Monviso.forward_backward(A, R_B)`](@ref) iterate 
+with ``\\mathbf{A} = \\mathbf{F}`` and
+``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
+``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
+= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
+where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping
+[nemirovskij1983problem](@cite). 
 """
-function proximal_gradient(
+function forward_backward(
     F; 
     g = x -> 0,
     y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
@@ -101,11 +127,7 @@ function proximal_gradient(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, χ::Real, params...)   
-        xk1 = Π(xk .- χ * F(xk, params...))
-        return xk1
-    end 
-    return iterate
+    return forward_backward(F, Π)
 end
 
 """
@@ -136,7 +158,7 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
 function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
-The convergence of the EGD algorithm is guaranteed for Lipschitz monotone operators, with 
+The convergence of the EG algorithm is guaranteed for Lipschitz monotone operators, with 
 Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
 """
 function extragradient(
@@ -193,13 +215,47 @@ function popov(
     y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
     model::Union{Nothing, Model} = nothing,
     norm_cone=MOI.SecondOrderCone,
-    analytical_prox = identity
+    analytical_prox=identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
     function iterate(xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
         yk1 = Π(xk - χ * F(yk, params...)) 
         xk1 = Π(xk - χ * F(yk1, params...))
         return xk1, yk1
+    end
+    return iterate
+end
+
+"""
+    forward_backward_forward(A, R_B)
+
+The forward-backward-forward iterate.
+
+# Description
+Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
+``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
+``\\mathbf{B}`` are maximal monotone. Let
+``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
+``\\mathbf{B}``. The forward-backward-forward
+[tseng2000modified](@cite) iteration for this setup is
+
+```math 
+\\begin{align*}
+    \\mathbf{y}_k &= R_{\\mathbf{B}}(\\mathbf{x}_k - \\chi \\mathbf{A}(\\mathbf{x}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\mathbf{y}_k - 
+    \\chi (\\mathbf{A}(\\mathbf{y}_k) - \\mathbf{A}(\\mathbf{x}_k))
+\\end{align*}
+```
+
+Convergence is guaranteed for Lipschitz monotone ``\\mathbf{A}``, with Lipschitz 
+constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
+"""
+function forward_backward_forward(A, R_B)
+    function iterate(xk::AbstractArray, χ::Real, A_args = (), R_B_args = ())
+        A_xk = A(xk, A_args...)
+        yk = R_B(xk .- χ * A_xk, R_B_args...)
+        xk1 = yk .- χ * (A(yk, A_args...) .- A_xk)
+        return xk1
     end
     return iterate
 end
@@ -214,23 +270,15 @@ end
         analytical_prox = identity
     )
 
-The forward-backward-forward iterate.
+The VI-oriented forward-backward-forward iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in 
-\\mathbb{R}^n``, the ``k``-th iterate of Forward-Backward-Forward (FBF) algorithm is 
-[tseng2000modified](@cite):
-
-```math 
-\\begin{align*}
-    \\mathbf{y}_k &= \\text{prox}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi F(\\mathbf{x}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\mathbf{y}_k - \\chi (F(\\mathbf{y}_k) - \\chi F(\\mathbf{x}_k))
-\\end{align*}
-```
-
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The convergence 
-of the FBF algorithm is guaranteed for Lipschitz monotone operators, with Lipschitz 
-constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
+It corresponds to the [`forward_backward_forward(A, R_B)`](@ref) 
+iterate with ``\\mathbf{A} = \\mathbf{F}``
+and ``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
+``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
+= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
+where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
 """
 function forward_backward_forward(
     F; 
@@ -241,14 +289,38 @@ function forward_backward_forward(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, χ::Real, params...)
-        F_xk = F(xk, params...)
-        yk = Π(xk .- χ * F_xk)
-        xk1 = yk .- χ * (F(yk, params...) .- F_xk)
+    return forward_backward_forward(F, Π) 
+end
+
+"""
+    forward_reflected_backward(A, R_B)
+
+The forward-reflected-backward iterate.
+
+# Description
+Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
+``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
+``\\mathbf{B}`` are maximal monotone. Let
+``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
+``\\mathbf{B}``. The forward-reflected-backward 
+[malitsky2020forward](@cite) iteration for this setup is
+
+```math
+\\mathbf{x}_{k+1} = R_{\\mathbf{B}}(\\mathbf{x}_k - 2\\chi (\\mathbf{A}
+(\\mathbf{x}_k) - \\mathbf{A}(\\mathbf{x}_{k-1})))
+```
+
+Convergence of the FRB algorithm is guaranteed for Lipschitz monotone operators, with 
+Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
+"""
+function forward_reflected_backward(A, R_B)
+    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, A_args = (), R_B_args = ())
+        xk1 = R_B(xk .- 2χ * (A(xk, A_args...) .- A(x1k, A_args...)), R_B_args...)
         return xk1
     end
     return iterate
 end
+
 
 """
     forward_reflected_backward(
@@ -260,22 +332,15 @@ end
         analytical_prox = identity
     )
 
-The forward-reflected-backward iterate.
+The VI-oriented forward-reflected-backward iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 
-\\in \\mathbb{R}^n``, the basic ``k``-th iterate of the Forward-Reflected-Backward (FRB) is 
-the following [malitsky2020forward](@cite):
-
-```math
-\\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi (2\\mathbf{F}
-(\\mathbf{x}_k) + \\mathbf{F}(\\mathbf{x}_{k-1})))
-```
-
-where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
-function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
-The convergence of the FRB algorithm is guaranteed for Lipschitz monotone operators, with 
-Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
+It corresponds to [`forward_reflected_backward(A, R_B)`](@ref) iterate with 
+``\\mathbf{A} = \\mathbf{F}`` and
+``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
+``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
+= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
+where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
 """
 function forward_reflected_backward(
     F; 
@@ -286,13 +351,39 @@ function forward_reflected_backward(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
-        xk1 = Π(xk .- χ * (2F(xk, params...) .+ F(x1k, params...)))
+    return forward_reflected_backward(F, Π)
+end
+
+"""
+    projected_reflected_gradient(A, R_B)
+
+The projected reflected gradient iterate.
+
+# Description
+Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
+``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
+``\\mathbf{B}`` are maximal monotone. Let
+``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
+``\\mathbf{B}``. The projected-reflected-backward 
+[malitsky2015projected](@cite) iteration for this setup is
+
+```math 
+\\begin{equation*}
+    \\mathbf{x}_{k+1} = R_{\\mathbf{B}}(\\mathbf{x}_k - \\chi 
+    \\mathbf{A}(2\\mathbf{x}_k - \\mathbf{x}_{k-1})) 
+\\end{equation*}
+```
+
+Convergence is guaranteed for Lipschitz monotone ``\\mathbf{A}``, with 
+Lipschitz constants ``L < +\\infty``, when ``\\chi \\in (0,(\\sqrt{2} - 1)/L)``. 
+"""
+function projected_reflected_gradient(A, R_B)
+    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, A_args = (), R_B_args = ())
+        xk1 = R_B(xk .- χ * A(2xk .- x1k, A_args...), R_B_args...)
         return xk1
     end
     return iterate
 end
-
 
 """
     projected_reflected_gradient(
@@ -304,24 +395,15 @@ end
         analytical_prox = identity
     )
 
-The projected reflected gradient iterate.
+The VI-oriented projected reflected gradient iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 
-\\in \\mathbb{R}^n``, the basic ``k``-th iterate of the projected reflected gradient (PRG) 
-is the following [malitsky2015projected](@cite):
-
-```math 
-\\mathbf{x}_{k+1} = \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
-\\mathbf{F}(2\\mathbf{x}_k - \\mathbf{x}_{k-1})) 
-```
-
-where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
-function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
-The convergence of PRG algorithm is guaranteed for Lipschitz monotone operators, with 
-Lipschitz constants ``L < +\\infty``, when ``\\chi \\in (0,(\\sqrt{2} - 1)/L)``. 
-Differently from the EGD iteration, the PRGD has the advantage of requiring a single 
-proximal operator evaluation.
+It corresponds to [`projected_reflected_gradient(A, R_B)`](@ref) 
+iterate with ``\\mathbf{A} = \\mathbf{F}``
+and ``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
+``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
+= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
+where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
 """
 function projected_reflected_gradient(
     F; 
@@ -332,11 +414,7 @@ function projected_reflected_gradient(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, params...)
-        xk1 = Π(xk .- χ * F(2xk .- x1k, params...))
-        return xk1
-    end
-    return iterate
+    return projected_reflected_gradient(F, Π)
 end
 
 """
@@ -391,6 +469,50 @@ function extra_anchored_gradient(
 end
 
 """
+    accelerated_reflected_gradient(A, R_B)
+
+The accelerated reflected gradient iterate.
+
+# Description
+Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
+``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
+``\\mathbf{B}`` are maximal monotone. Let
+``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
+``\\mathbf{B}``. The accelerated reflected gradient
+[cai2022accelerated](@cite) iteration for this setup is
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= 2\\mathbf{x}_k - \\mathbf{x}_{k-1} + \\frac{1}{k+1}
+    (\\mathbf{x}_0 - \\mathbf{x}_k) - \\frac{1}{k}(\\mathbf{x}_k - 
+    \\mathbf{x}_{k-1}) \\\\
+    \\mathbf{x}_{k+1} &= R_{\\mathbf{B}}\\left(\\mathbf{x}_k - 
+        \\chi \\mathbf{A}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
+        \\mathbf{x}_k)\\right)
+\\end{align*}
+```
+
+Convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with 
+Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
+"""
+function accelerated_reflected_gradient(A, R_B)
+    function iterate(
+        xk::AbstractArray, 
+        x1k::AbstractArray,
+        x0::AbstractArray, 
+        k::Int, 
+        χ::Real,
+        A_args = (),
+        R_B_args = (),
+    )
+        yk = 2xk .- x1k .+ (x0 .- xk) ./ (k + 1) .- (xk .- x1k) ./ k
+        xk1 = R_B(xk .- χ * A(yk, A_args...) .+ (x0 .- xk) ./ (k + 1), R_B_args...)
+        return xk1
+    end
+    return iterate
+end
+
+"""
     accelerated_reflected_gradient(
         F; 
         g = x -> 0,
@@ -400,28 +522,15 @@ end
         analytical_prox = identity
     )
 
-The accelerated reflected gradient iterate.
+The VI-oriented accelerated reflected gradient iterate.
 
 # Description
-Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\mathbf{x}_0 
-\\in \\mathbb{R}^n``, the basic ``k``-th iterate of the accelerated reflected gradient 
-(ARG) is the following [cai2022accelerated](@cite):
-
-```math
-\\begin{align*}
-    \\mathbf{y}_k &= 2\\mathbf{x}_k - \\mathbf{x}_{k-1} + \\frac{1}{k+1}
-    (\\mathbf{x}_0 - \\mathbf{x}_k) - \\frac{1}{k}(\\mathbf{x}_k - 
-    \\mathbf{x}_{k-1}) \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
-        \\chi \\mathbf{F}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
-        \\mathbf{x}_k)\\right)
-\\end{align*}
-```
-
-where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
-function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The
-convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with 
-Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
+It corresponds to [`accelerated_reflected_gradient(A, R_B)`](@ref) iterate with 
+``\\mathbf{A} = \\mathbf{F}`` and
+``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
+``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
+= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
+where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
 """
 function accelerated_reflected_gradient(
     F; 
@@ -432,30 +541,11 @@ function accelerated_reflected_gradient(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(
-        xk::AbstractArray, 
-        x1k::AbstractArray,
-        x0::AbstractArray, 
-        k::Int, 
-        χ::Real, 
-        params...
-    )
-        yk = 2xk .- x1k .+ (x0 .- xk) ./ (k + 1) .- (xk .- x1k) ./ k
-        xk1 = Π(xk .- χ * F(yk, params...) .+ (x0 .- xk) ./ (k + 1))
-        return xk1
-    end
-    return iterate
+    return accelerated_reflected_gradient(F, Π)
 end
 
 """
-    fast_optimistic_gradient_descent_ascent(
-        F; 
-        g = x -> 0,
-        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-        model::Union{Nothing, Model} = nothing,
-        norm_cone=MOI.SecondOrderCone,
-        analytical_prox = identity
-    )
+    fast_optimistic_gradient_descent_ascent(F)
 
 (Explicit) fast optimistic gradient descent-ascent iterate
 
@@ -480,14 +570,7 @@ convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators,
 Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{4L}\\right)`` 
 and ``\\alpha > 2``.
 """
-function fast_optimistic_gradient_descent_ascent(
-    F;
-    g = x -> 0,
-    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-    model::Union{Nothing, Model} = nothing,
-    norm_cone=MOI.SecondOrderCone,
-    analytical_prox = identity
-)
+function fast_optimistic_gradient_descent_ascent(F)
     function iterate(
         xk::AbstractArray, 
         x1k::AbstractArray,
@@ -701,7 +784,7 @@ end
         analytical_prox = identity
     )
 
-    Hybrid golden ratio algorithm I 
+Hybrid golden ratio algorithm I 
 
 # Description
 The HGRAAL-1 algorithm [baghbadorani2024hybrid](@cite) is a variation of the Adaptive 

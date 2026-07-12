@@ -49,7 +49,7 @@ end
     F(x) = H * x
 
     χ = 0.01
-    pg_iterate = proximal_gradient(F; y=y_vector, model=model_vector)
+    pg_iterate = forward_backward(F; y=y_vector, model=model_vector)
     @test pg_iterate(x_vector, χ) isa Vector
 end
 
@@ -125,5 +125,5 @@ end
 #=F(x) = 2x=#
 #=χ = 0.1=#
 #==#
-#=proximal_gradient_iterate = ProxGradient(x, F, set, optimizer)=#
-#=proximal_gradient_iterate(x, χ)=#
+#=forward_backward_iterate = ProxGradient(x, F, set, optimizer)=#
+#=forward_backward_iterate(x, χ)=#
