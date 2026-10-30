@@ -1,6 +1,37 @@
 using Test, Monviso, JuMP, Clarabel, ComponentArrays
 using MathOptInterface: MathOptInterface as MOI
 
+@testset "Iteration formula regressions" begin
+    x = [4.0]
+    x_previous = [1.0]
+    frb = forward_reflected_backward(identity, identity)
+    @test frb(x, x_previous, 0.5) == [0.5]
+
+    arg = accelerated_reflected_gradient(identity, identity)
+    @test arg([3.0], [1.0], [10.0], 2, 0.1) ≈ [5.05]
+
+    eg = extragradient(identity; analytical_prox=identity)
+    @test eg([3.0], 0.5) == [2.25]
+
+    pm = popov(identity; analytical_prox=identity)
+    @test pm([3.0], [2.0], 0.5) == ([2.0], [2.0])
+
+    agraal = adaptive_golden_ratio_algorithm(x -> 2 .* x; analytical_prox=identity)
+    _, _, step, _ = agraal([2.0], [1.0], [1.0], 1.0, 1.0; ϕ=1.5)
+    @test step ≈ 1.5 / 16
+
+    zero_operator = x -> zeros(length(x))
+    _, _, zero_step, _ = adaptive_golden_ratio_algorithm(zero_operator; analytical_prox=identity)(
+        [1.0], [1.0], [1.0], 1.0, 1.0,
+    )
+    @test isfinite(zero_step)
+
+    hgraal = hybrid_golden_ratio_algorithm_1(identity; analytical_prox=identity)
+    _, hybrid_y, _, _, hybrid_counter = hgraal([0.0], [10.0], [4.0], 1.0, 1.0, 1; ϕ=1.5)
+    @test hybrid_y == [0.0]
+    @test hybrid_counter == 2
+end
+
 n, m = 30, 20
 A = rand(m, n)
 b = rand(m)
@@ -30,6 +61,23 @@ y_cv = ComponentVector(@variable(model_cv, [1:length(x_cv)]), getaxes(x_cv))
     # Differnent norm
     Π = prox(y=y_vector, model=model_vector, norm_cone=MOI.NormOneCone)
     @test Π(x_vector) isa Vector
+end
+
+@testset "JuMP proximal objective" begin
+    projection_model = Model(Clarabel.Optimizer)
+    set_silent(projection_model)
+    projection_y = @variable(projection_model, [1:1])
+    @constraint(projection_model, projection_y .>= 0)
+    projection = prox(y=projection_y, model=projection_model)
+    @test projection([-2.0]) ≈ [0.0] atol=1e-6
+    @test projection([3.0]) ≈ [3.0] atol=1e-6
+
+    regularized_model = Model(Clarabel.Optimizer)
+    set_silent(regularized_model)
+    regularized_y = @variable(regularized_model, [1:1])
+    regularized_prox = prox(y -> (y[1] - 1)^2; y=regularized_y, model=regularized_model)
+    @test regularized_prox([0.0], 1.0) ≈ [2 / 3] atol=1e-6
+    @test regularized_prox([0.0], 2.0) ≈ [4 / 5] atol=1e-6
 end
 
 @testset "Projection, ComponentVectors" begin

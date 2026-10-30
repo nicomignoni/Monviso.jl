@@ -30,7 +30,14 @@ include("docstrings.jl")
         norm_cone=MOI.SecondOrderCone,
     )
 
-The proximal operator iterate.
+Construct a proximal operator.
+
+For the default `MOI.SecondOrderCone`, the returned closure evaluates
+``\\operatorname{prox}_{\\chi g + \\iota_{\\mathcal S}}(x)``. Call it as
+`Π(x, χ)`; `Π(x)` remains shorthand for `χ = 1`. With a different
+`norm_cone`, it minimizes the corresponding squared cone norm instead, so
+the Euclidean convergence statements of the algorithms below do not apply
+without a separate analysis.
 
 # Arguments
 $DOCS_Y
@@ -50,15 +57,16 @@ function prox(
     if y !== nothing && model !== nothing
         _x = @variable(model, [1:length(y)])
         t = @variable(model)
-        @constraint(model, [t; g(y) .+ 0.5(_x .- y)] in norm_cone(1 + length(y)))
-        @objective(model, Min, t)
-        return (x::AbstractArray) -> begin
+        @constraint(model, [t; _x .- y] in norm_cone(1 + length(y)))
+        return (x::AbstractArray, χ::Real = 1) -> begin
             fix.(_x, x)
+            @objective(model, Min, χ * g(y) + 0.5 * t^2)
             optimize!(model)
             value.(y)
         end
     else
-        return analytical_prox
+        return (x::AbstractArray, χ::Real = 1) ->
+            applicable(analytical_prox, x, χ) ? analytical_prox(x, χ) : analytical_prox(x)
     end
 end
 
@@ -72,12 +80,7 @@ end
 The forward backward iterate.
 
 # Description
-Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
-``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
-``\\mathbf{B}`` are maximal monotone. Let
-``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
-``\\mathbf{B}``. The forward-backward 
-[passty1979ergodic](@cite) iteration for this setup is
+The forward-backward [passty1979ergodic](@cite) iteration is
 
 ```math
 \\begin{align*}
@@ -88,6 +91,9 @@ Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
 Convergence is guaranteed for Lipschitz strongly monotone ``\\mathbf{A}``, 
 with monotone constant ``\\mu > 0`` and Lipshitz constants 
 ``L < +\\infty``, when ``\\chi \\in (0, 2\\mu/L^2)``.
+This assumes that the supplied `R_B` is the stepsize-dependent resolvent for
+the current `χ`, that the backward operator is maximally monotone, and that a
+solution exists.
 """
 function forward_backward(A, R_B)
     function iterate(xk::AbstractArray, χ::Real, A_args = (), R_B_args = ())  
@@ -110,13 +116,18 @@ end
 The VI-oriented forward backward iterate. 
 
 # Description
-It corresponds to [`Monviso.forward_backward(A, R_B)`](@ref) iterate 
-with ``\\mathbf{A} = \\mathbf{F}`` and
-``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
-``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
-= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping
-[nemirovskij1983problem](@cite). 
+The forward-backward [nemirovskij1983problem](@cite) iteration is
+
+```math
+\\begin{align*}
+    \\mathbf{x}_{k+1} = \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
+    \\mathbf{F}(\\mathbf{x}_k))
+\\end{align*}
+```
+
+Convergence is guaranteed for Lipschitz strongly monotone operators, with monotone constant
+``\\mu > 0`` and Lipshitz constant ``L < +\\infty``, when 
+``\\chi \\in (0, 2\\mu/L^2)``.
 """
 function forward_backward(
     F; 
@@ -127,101 +138,8 @@ function forward_backward(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    return forward_backward(F, Π)
-end
-
-"""
-    extragradient(
-        F; 
-        g = x -> 0,
-        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-        model::Union{Nothing, Model} = nothing,
-        norm_cone=MOI.SecondOrderCone,
-        analytical_prox = identity
-    )
-
-The extragradient iterate
-
-# Description
-Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in 
-\\mathbb{R}^n``, the ``k``-th iterate of the extragradient algorithm (EG) is 
-[korpelevich1976extragradient](@cite):
-
-```math
-\\begin{align*}
-    \\mathbf{y}_k &= \\text{prox}_{\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}
-    (\\mathbf{x}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{\\mathcal{S}}(\\mathbf{y}_k - \\chi \\mathbf{F}
-    (\\mathbf{x}_k))
-\\end{align*}
-```
-
-where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
-function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
-The convergence of the EG algorithm is guaranteed for Lipschitz monotone operators, with 
-Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
-"""
-function extragradient(
-    F; 
-    g = x -> 0,
-    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-    model::Union{Nothing, Model} = nothing,
-    norm_cone=MOI.SecondOrderCone,
-    analytical_prox = identity
-)
-    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, χ::Real, params...)
-        yk = Π(xk - χ * F(xk, params...))
-        xk1 = Π(xk - χ * F(yk, params...))
-        return xk1
-    end
-    return iterate
-end
-
-"""
-    popov(
-        F; 
-        g = x -> 0,
-        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-        model::Union{Nothing, Model} = nothing,
-        norm_cone=MOI.SecondOrderCone,
-        analytical_prox = identity
-    )
-
-The Popov's method iterate
-
-# Description
-Given a constant step-size ``\\chi > 0`` and an initial vectors 
-``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Popov's Method 
-(PM) is [popov1980modification](@cite):
-
-```math
-\\begin{align*}
-    \\mathbf{y}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}
-    (\\mathbf{y}_k)) \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi 
-    \\mathbf{F}(\\mathbf{x}_k))
-\\end{align*}
-```
-
-where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
-function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The 
-convergence of PM is guaranteed for Lipschitz monotone operators, with Lipschitz constant 
-``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
-"""
-function popov(
-    F; 
-    g = x -> 0,
-    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-    model::Union{Nothing, Model} = nothing,
-    norm_cone=MOI.SecondOrderCone,
-    analytical_prox=identity
-)
-    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    function iterate(xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
-        yk1 = Π(xk - χ * F(yk, params...)) 
-        xk1 = Π(xk - χ * F(yk1, params...))
-        return xk1, yk1
+    function iterate(xk::AbstractArray, χ::Real, F_args = (), _ = ())
+        return Π(xk .- χ * F(xk, F_args...), χ)
     end
     return iterate
 end
@@ -232,12 +150,7 @@ end
 The forward-backward-forward iterate.
 
 # Description
-Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
-``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
-``\\mathbf{B}`` are maximal monotone. Let
-``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
-``\\mathbf{B}``. The forward-backward-forward
-[tseng2000modified](@cite) iteration for this setup is
+The forward-backward-forward [tseng2000modified](@cite) iteration is
 
 ```math 
 \\begin{align*}
@@ -273,12 +186,19 @@ end
 The VI-oriented forward-backward-forward iterate.
 
 # Description
-It corresponds to the [`forward_backward_forward(A, R_B)`](@ref) 
-iterate with ``\\mathbf{A} = \\mathbf{F}``
-and ``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
-``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
-= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
+The forward-backward-forward [tseng2000modified](@cite) iteration is
+
+```math 
+\\begin{align*}
+    \\mathbf{y}_k &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
+    \\mathbf{F}(\\mathbf{x}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\mathbf{y}_k - \\chi (\\mathbf{F}(\\mathbf{y}_k) - 
+    \\mathbf{F}(\\mathbf{x}_k))
+\\end{align*}
+```
+
+Convergence is guaranteed for Lipschitz monotone operators, with Lipschitz constant
+``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
 """
 function forward_backward_forward(
     F; 
@@ -289,7 +209,12 @@ function forward_backward_forward(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    return forward_backward_forward(F, Π) 
+    function iterate(xk::AbstractArray, χ::Real, F_args = (), _ = ())
+        F_xk = F(xk, F_args...)
+        yk = Π(xk .- χ * F_xk, χ)
+        return yk .- χ * (F(yk, F_args...) .- F_xk)
+    end
+    return iterate
 end
 
 """
@@ -298,16 +223,11 @@ end
 The forward-reflected-backward iterate.
 
 # Description
-Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
-``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
-``\\mathbf{B}`` are maximal monotone. Let
-``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
-``\\mathbf{B}``. The forward-reflected-backward 
-[malitsky2020forward](@cite) iteration for this setup is
+The forward-reflected-backward [malitsky2020forward](@cite) iteration is
 
 ```math
-\\mathbf{x}_{k+1} = R_{\\mathbf{B}}(\\mathbf{x}_k - 2\\chi (\\mathbf{A}
-(\\mathbf{x}_k) - \\mathbf{A}(\\mathbf{x}_{k-1})))
+\\mathbf{x}_{k+1} = R_{\\chi\\mathbf{B}}(\\mathbf{x}_k - 2\\chi \\mathbf{A}
+(\\mathbf{x}_k) + \\chi\\mathbf{A}(\\mathbf{x}_{k-1}))
 ```
 
 Convergence of the FRB algorithm is guaranteed for Lipschitz monotone operators, with 
@@ -315,12 +235,11 @@ Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\r
 """
 function forward_reflected_backward(A, R_B)
     function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, A_args = (), R_B_args = ())
-        xk1 = R_B(xk .- 2χ * (A(xk, A_args...) .- A(x1k, A_args...)), R_B_args...)
+        xk1 = R_B(xk .- 2χ * A(xk, A_args...) .+ χ * A(x1k, A_args...), R_B_args...)
         return xk1
     end
     return iterate
 end
-
 
 """
     forward_reflected_backward(
@@ -335,12 +254,15 @@ end
 The VI-oriented forward-reflected-backward iterate.
 
 # Description
-It corresponds to [`forward_reflected_backward(A, R_B)`](@ref) iterate with 
-``\\mathbf{A} = \\mathbf{F}`` and
-``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
-``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
-= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
+The forward-reflected-backward [malitsky2020forward](@cite) iteration is
+
+```math
+\\mathbf{x}_{k+1} = \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - 2\\chi \\mathbf{F}
+(\\mathbf{x}_k) + \\chi\\mathbf{F}(\\mathbf{x}_{k-1}))
+```
+
+Convergence is guaranteed for Lipschitz monotone operators, with Lipschitz constant
+``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
 """
 function forward_reflected_backward(
     F; 
@@ -351,7 +273,10 @@ function forward_reflected_backward(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    return forward_reflected_backward(F, Π)
+    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, F_args = (), _ = ())
+        return Π(xk .- 2χ * F(xk, F_args...) .+ χ * F(x1k, F_args...), χ)
+    end
+    return iterate
 end
 
 """
@@ -360,12 +285,7 @@ end
 The projected reflected gradient iterate.
 
 # Description
-Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
-``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
-``\\mathbf{B}`` are maximal monotone. Let
-``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
-``\\mathbf{B}``. The projected-reflected-backward 
-[malitsky2015projected](@cite) iteration for this setup is
+The projected-reflected-backward [malitsky2015projected](@cite) iteration is
 
 ```math 
 \\begin{equation*}
@@ -398,12 +318,15 @@ end
 The VI-oriented projected reflected gradient iterate.
 
 # Description
-It corresponds to [`projected_reflected_gradient(A, R_B)`](@ref) 
-iterate with ``\\mathbf{A} = \\mathbf{F}``
-and ``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
-``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
-= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
+The projected-reflected-backward [malitsky2015projected](@cite) iteration is
+
+```math 
+\\mathbf{x}_{k+1} = \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
+\\mathbf{F}(2\\mathbf{x}_k - \\mathbf{x}_{k-1})) 
+```
+
+Convergence is guaranteed for Lipschitz monotone operators, with Lipschitz constant
+``L < +\\infty``, when ``\\chi \\in (0,(\\sqrt{2} - 1)/L)``. 
 """
 function projected_reflected_gradient(
     F; 
@@ -414,7 +337,236 @@ function projected_reflected_gradient(
     analytical_prox = identity
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    return projected_reflected_gradient(F, Π)
+    function iterate(xk::AbstractArray, x1k::AbstractArray, χ::Real, F_args = (), _ = ())
+        return Π(xk .- χ * F(2xk .- x1k, F_args...), χ)
+    end
+    return iterate
+end
+
+"""
+    accelerated_reflected_gradient(A, R_B)
+
+The accelerated reflected gradient iterate.
+
+# Description
+The accelerated reflected gradient [cai2022accelerated](@cite) iteration is
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= 2\\mathbf{x}_k - \\mathbf{x}_{k-1} + \\frac{1}{k+1}
+    (\\mathbf{x}_0 - \\mathbf{x}_k) - \\frac{1}{k}(\\mathbf{x}_0 - 
+    \\mathbf{x}_{k-1}) \\\\
+    \\mathbf{x}_{k+1} &= R_{\\mathbf{B}}\\left(\\mathbf{x}_k - 
+        \\chi \\mathbf{A}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
+        \\mathbf{x}_k)\\right)
+\\end{align*}
+```
+
+Convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with 
+Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
+"""
+function accelerated_reflected_gradient(A, R_B)
+    function iterate(
+        xk::AbstractArray, 
+        x1k::AbstractArray,
+        x0::AbstractArray, 
+        k::Int, 
+        χ::Real,
+        A_args = (),
+        R_B_args = (),
+    )
+        yk = 2xk .- x1k .+ (x0 .- xk) ./ (k + 1) .- (x0 .- x1k) ./ k
+        xk1 = R_B(xk .- χ * A(yk, A_args...) .+ (x0 .- xk) ./ (k + 1), R_B_args...)
+        return xk1
+    end
+    return iterate
+end
+
+"""
+    accelerated_reflected_gradient(
+        F; 
+        g = x -> 0,
+        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+        model::Union{Nothing, Model} = nothing,
+        norm_cone=MOI.SecondOrderCone,
+        analytical_prox = identity
+    )
+
+The VI-oriented accelerated reflected gradient iterate.
+
+# Description
+The accelerated reflected gradient [cai2022accelerated](@cite) iteration is
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= 2\\mathbf{x}_k - \\mathbf{x}_{k-1} + \\frac{1}{k+1}
+    (\\mathbf{x}_0 - \\mathbf{x}_k) - \\frac{1}{k}(\\mathbf{x}_0 - 
+    \\mathbf{x}_{k-1}) \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
+        \\chi \\mathbf{F}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
+        \\mathbf{x}_k)\\right)
+\\end{align*}
+```
+
+Convergence is guaranteed for Lipschitz monotone operators, with Lipschitz constant
+``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
+"""
+function accelerated_reflected_gradient(
+    F; 
+    g = x -> 0,
+    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+    model::Union{Nothing, Model} = nothing,
+    norm_cone=MOI.SecondOrderCone,
+    analytical_prox = identity
+)
+    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
+    function iterate(xk::AbstractArray, x1k::AbstractArray, x0::AbstractArray, k::Int, χ::Real, F_args = (), _ = ())
+        yk = 2xk .- x1k .+ (x0 .- xk) ./ (k + 1) .- (x0 .- x1k) ./ k
+        return Π(xk .- χ * F(yk, F_args...) .+ (x0 .- xk) ./ (k + 1), χ)
+    end
+    return iterate
+end
+
+"""
+    peaceman_rachford(R_A, R_B)
+
+The Peaceman-Rachford iterate
+
+# Description
+The Peaceman-Rachford iteration is given by
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= 2R_{\\mathbf{B}}(\\mathbf{x}_k) - \\mathbf{x}_k
+    \\matbf{x}_{k+1} &= 2R_{\\mathbf{A}}(\\mathbf{y}_k) - \\mathbf{y}_k
+\\end{align*}
+```
+"""
+function peaceman_rachford(R_A, R_B)
+    function iterate(xk::AbstractVector, R_A_args = (), R_B_args = ())
+        yk1 = 2R_B(xk, R_B_args...) .- xk
+        xk1 = 2R_A(yk1, R_A_args...) .- yk1
+        return xk1
+    end
+    return iterate
+end
+
+"""
+    douglas_rachford(R_A, R_B)
+
+# Description
+The Douglas-Rachford iteration is given by
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= 2R_{\\mathbf{B}}(\\mathbf{x}_k) - \\mathbf{x}_k
+    \\matbf{x}_{k+1} &= \\mathbf{x}_k + R_{\\mathbf{A}}(\\mathbf{y}_k) - \\mathbf{y}_k
+\\end{align*}
+```
+"""
+function douglas_rachford(R_A, R_B)
+    function iterate(xk::AbstractVector, R_A_args = (), R_B_args = ())
+        yk1 = 2R_B(xk, R_B_args...) .- xk
+        xk1 = xk .+ R_A(yk1, R_A_args...) .- yk1
+        return xk1 
+    end
+    return iterate
+end
+
+"""
+    extragradient(
+        F; 
+        g = x -> 0,
+        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+        model::Union{Nothing, Model} = nothing,
+        norm_cone=MOI.SecondOrderCone,
+        analytical_prox = identity
+    )
+
+The extragradient iterate
+
+# Description
+Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \\in 
+\\mathbb{R}^n``, the ``k``-th iterate of the extragradient algorithm (EG) is 
+[korpelevich1976extragradient](@cite):
+
+```math
+\\begin{align*}
+    \\mathbf{y}_k &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}
+    (\\mathbf{x}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}
+    (\\mathbf{y}_k))
+\\end{align*}
+```
+
+where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
+function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
+The convergence of the EG algorithm is guaranteed for Lipschitz monotone operators, with 
+Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{L}\\right)``.
+"""
+function extragradient(
+    F; 
+    g = x -> 0,
+    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+    model::Union{Nothing, Model} = nothing,
+    norm_cone=MOI.SecondOrderCone,
+    analytical_prox = identity
+)
+    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
+    function iterate(xk::AbstractArray, χ::Real, params...)
+        yk = Π(xk - χ * F(xk, params...), χ)
+        xk1 = Π(xk - χ * F(yk, params...), χ)
+        return xk1
+    end
+    return iterate
+end
+
+"""
+    popov(
+        F; 
+        g = x -> 0,
+        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+        model::Union{Nothing, Model} = nothing,
+        norm_cone=MOI.SecondOrderCone,
+        analytical_prox = identity
+    )
+
+The Popov's method iterate
+
+# Description
+Given a constant step-size ``\\chi > 0`` and an initial vectors 
+``\\mathbf{x}_0,\\mathbf{y}_0 \\in \\mathbb{R}^n``, the ``k``-th iterate of Popov's Method 
+(PM) is [popov1980modification](@cite):
+
+```math
+\\begin{align*}
+    \\mathbf{y}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi \\mathbf{F}
+    (\\mathbf{y}_k)) \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{x}_k - \\chi 
+    \\mathbf{F}(\\mathbf{y}_{k+1}))
+\\end{align*}
+```
+
+where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
+function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The 
+convergence of PM is guaranteed for Lipschitz monotone operators, with Lipschitz constant 
+``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{2L}\\right)``.
+"""
+function popov(
+    F; 
+    g = x -> 0,
+    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
+    model::Union{Nothing, Model} = nothing,
+    norm_cone=MOI.SecondOrderCone,
+    analytical_prox=identity
+)
+    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
+    function iterate(xk::AbstractArray, yk::AbstractArray, χ::Real, params...)
+        yk1 = Π(xk - χ * F(yk, params...), χ)
+        xk1 = Π(xk - χ * F(yk1, params...), χ)
+        return xk1, yk1
+    end
+    return iterate
 end
 
 """
@@ -436,10 +588,10 @@ Given a constant step-size ``\\chi > 0`` and an initial vector ``\\mathbf{x}_0 \
 
 ```math
 \\begin{align*}
-    \\mathbf{y}_k &= \\text{prox}_{g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
+    \\mathbf{y}_k &= \\text{prox}_{\\chi g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
         \\chi \\mathbf{F}(\\mathbf{x}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
         \\mathbf{x}_k)\\right) \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}\\left(\\mathbf{x}_k - 
         \\chi \\mathbf{F}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
         \\mathbf{x}_k)\\right)
 \\end{align*}
@@ -461,87 +613,11 @@ function extra_anchored_gradient(
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
     function iterate(xk::AbstractArray, x0::AbstractArray, k::Int, χ::Real, params...)
-        yk = Π(xk .- χ * F(xk, params...) .+ (x0 - xk) ./ (k + 1))
-        xk1 = Π(xk .- χ * F(yk, params...) .+ (x0 - xk) ./ (k + 1))
+        yk = Π(xk .- χ * F(xk, params...) .+ (x0 - xk) ./ (k + 1), χ)
+        xk1 = Π(xk .- χ * F(yk, params...) .+ (x0 - xk) ./ (k + 1), χ)
         return xk1
     end
     return iterate
-end
-
-"""
-    accelerated_reflected_gradient(A, R_B)
-
-The accelerated reflected gradient iterate.
-
-# Description
-Consider the monotone inclusion problem of finding an ``\\mathbf{x}`` such that
-``0 \\in (\\mathbf{A} + \\mathbf{B})(\\mathbf{x})``, where ``\\mathbf{A}`` and 
-``\\mathbf{B}`` are maximal monotone. Let
-``R_{\\mathbf{B}} := (\\mathrm{Id} + \\mathbf{B})^{-1}`` be the resolvent of
-``\\mathbf{B}``. The accelerated reflected gradient
-[cai2022accelerated](@cite) iteration for this setup is
-
-```math
-\\begin{align*}
-    \\mathbf{y}_k &= 2\\mathbf{x}_k - \\mathbf{x}_{k-1} + \\frac{1}{k+1}
-    (\\mathbf{x}_0 - \\mathbf{x}_k) - \\frac{1}{k}(\\mathbf{x}_k - 
-    \\mathbf{x}_{k-1}) \\\\
-    \\mathbf{x}_{k+1} &= R_{\\mathbf{B}}\\left(\\mathbf{x}_k - 
-        \\chi \\mathbf{A}(\\mathbf{y}_k) + \\frac{1}{k+1}(\\mathbf{x}_0 - 
-        \\mathbf{x}_k)\\right)
-\\end{align*}
-```
-
-Convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with 
-Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{12L}\\right)``.
-"""
-function accelerated_reflected_gradient(A, R_B)
-    function iterate(
-        xk::AbstractArray, 
-        x1k::AbstractArray,
-        x0::AbstractArray, 
-        k::Int, 
-        χ::Real,
-        A_args = (),
-        R_B_args = (),
-    )
-        yk = 2xk .- x1k .+ (x0 .- xk) ./ (k + 1) .- (xk .- x1k) ./ k
-        xk1 = R_B(xk .- χ * A(yk, A_args...) .+ (x0 .- xk) ./ (k + 1), R_B_args...)
-        return xk1
-    end
-    return iterate
-end
-
-"""
-    accelerated_reflected_gradient(
-        F; 
-        g = x -> 0,
-        y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-        model::Union{Nothing, Model} = nothing,
-        norm_cone=MOI.SecondOrderCone,
-        analytical_prox = identity
-    )
-
-The VI-oriented accelerated reflected gradient iterate.
-
-# Description
-It corresponds to [`accelerated_reflected_gradient(A, R_B)`](@ref) iterate with 
-``\\mathbf{A} = \\mathbf{F}`` and
-``\\mathbf{B} = \\partial g + \\mathsf{N}_{\\mathcal{S}}``, so that
-``R_{\\mathbf{B}} = (\\mathrm{Id} + \\partial g + \\mathsf{N}_{\\mathcal{S}})^{-1}
-= \\text{prox}_{g,\\mathcal{S}}`` in the notation adopted here,
-where ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. 
-"""
-function accelerated_reflected_gradient(
-    F; 
-    g = x -> 0,
-    y::Union{Nothing, AbstractArray{VariableRef}} = nothing,
-    model::Union{Nothing, Model} = nothing,
-    norm_cone=MOI.SecondOrderCone,
-    analytical_prox = identity
-)
-    Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
-    return accelerated_reflected_gradient(F, Π)
 end
 
 """
@@ -566,7 +642,7 @@ Given a constant step-size ``\\chi > 0`` and initial vectors ``\\mathbf{x}_1,\\m
 
 where ``g : \\mathbb{R}^n \\to \\mathbb{R}`` is a scalar convex (possibly non-smooth) 
 function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI mapping. The 
-convergence of the ARG algorithm is guaranteed for Lipschitz monotone operators, with 
+convergence of the FOGDA algorithm is guaranteed for Lipschitz monotone operators, with 
 Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{4L}\\right)`` 
 and ``\\alpha > 2``.
 """
@@ -610,7 +686,7 @@ Optimistic Gradient Descent Ascent (CFOGDA) is the following [sedlmayer2023fast]
     \\mathbf{y}_k &= \\mathbf{x}_k + \\frac{k}{k+\\alpha}(\\mathbf{x}_k - 
     \\mathbf{x}_{k-1}) - \\chi \\frac{\\alpha}{k+\\alpha}(\\mathbf{F}(\\mathbf{y}_{k-1}) + 
     \\mathbf{z}_k) \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}\\left(\\mathbf{y}_k - \\chi\\left(1 
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}\\left(\\mathbf{y}_k - \\chi\\left(1 
     + \\frac{k}{k+\\alpha}\\right)(\\mathbf{F}(\\mathbf{y}_k) - \\mathbf{F}
     (\\mathbf{y}_{k-1}) - \\zeta_k)\\right) \\\\
     \\mathbf{z}_{k+1} &= \\frac{k+\\alpha}{\\chi (2k+\\alpha)}( \\mathbf{y}_k - 
@@ -624,6 +700,9 @@ function, while ``\\mathbf{F} : \\mathbb{R}^n \\to \\mathbb{R}^n`` is the VI map
 convergence of the CFOGDA algorithm is guaranteed for Lipschitz monotone operators, with 
 Lipschitz constant ``L < +\\infty``, when ``\\chi \\in \\left(0,\\frac{1}{4L}\\right)`` 
 and ``\\alpha > 2``.
+This is a projected method: the stated guarantee is for the normal cone of
+the constraint set. It does not extend to an arbitrary additional nonzero
+`g` merely by replacing the projection with a proximal map.
 """
 function constrained_fast_optimistic_gradient_descent_ascent(
     F;
@@ -647,7 +726,7 @@ function constrained_fast_optimistic_gradient_descent_ascent(
         F_y1k = F(y1k, params...)
         yk = xk .+ k .* (xk .- x1k) ./ (k + α) .- χ * α .* (F_y1k .+ zk) ./ (k + α)
         F_diff = F(yk, params...) .- F_y1k .- zk
-        xk1 = Π(yk .- χ * (1 + k / (k + α)) .* F_diff)
+        xk1 = Π(yk .- χ * (1 + k / (k + α)) .* F_diff, χ)
         zk1 = (k + α) .* (yk .- xk1) ./ (χ * (2k + α)) .- F_diff
         return xk1, yk, zk1
     end
@@ -673,8 +752,8 @@ following [malitsky2020golden](@cite):
 
 ```math 
 \\begin{align*}
-    \\mathbf{y}_{k+1} &= \\frac{(\\phi - 1)\\mathbf{x}_k + \\phi\\mathbf{y}_k}{\\phi} \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi 
+    \\mathbf{y}_{k+1} &= \\frac{(\\phi - 1)\\mathbf{x}_k + \\mathbf{y}_k}{\\phi} \\\\
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi 
     \\mathbf{F}(\\mathbf{x}_k))
 \\end{align*}
 ```
@@ -702,7 +781,7 @@ function golden_ratio_algorithm(
         ϕ::Real=GOLDEN_RATIO,
     )
         yk1 = ((ϕ - 1) .* xk .+ yk) ./ ϕ
-        xk1 = Π(yk1 .- χ .* F(xk, params...))
+        xk1 = Π(yk1 .- χ .* F(xk, params...), χ)
         return xk1, yk1
     end
     return iterate
@@ -724,7 +803,7 @@ Adaptive golden ratio algorithm
 The Adaptive Golden Ratio Algorithm (aGRAAL) algorithm is a variation of the Golden Ratio 
 Algorithm, with adaptive step size. 
 Following [malitsky2020golden](@cite), let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/
-\\phi^2``, where ``\\phi \\in (0,\\varphi]`` and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` 
+\\phi^2``, where ``\\phi \\in (1,\\varphi]`` and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` 
 is the golden ratio. 
 Moreover, let ``\\bar{\\chi} \\gg 0`` be a constant (arbitrarily large) step-size. 
 Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in \\mathbb{R}^n``, ``\\mathbf{y}_0 
@@ -733,7 +812,7 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in \\mathbb{R}^n``, ``\\
 ```math
 \\begin{align*} 
 \\chi_k &= \\min\\left\\{\\rho\\chi_{k-1},
-      \\frac{\\phi\\theta_k \\|\\mathbf{x}_k
+      \\frac{\\phi\\theta_{k-1} \\|\\mathbf{x}_k
       -\\mathbf{x}_{k-1}\\|^2}{4\\chi_{k-1}\\|\\mathbf{F}(\\mathbf{x}_k)
       -\\mathbf{F}(\\mathbf{x}_{k-1})\\|^2}, \\bar{\\chi}\\right\\} \\\\
 \\mathbf{x}_{k+1}, \\mathbf{y}_{k+1} &= \\texttt{golden\\_ratio\\_algorithm}(\\mathbf{x}_k, \\mathbf{y}_k, 
@@ -765,9 +844,10 @@ function adaptive_golden_ratio_algorithm(
     )
         ρ = 1 / ϕ + 1 / ϕ^2
         F_diff = F(xk, params...) .- F(x1k, params...)
-        sk = min(ρ * s1k, ϕ * tk * norm(xk .- x1k) / (4 * s1k * norm(F_diff)), χ_large)
+        ratio = iszero(norm(F_diff)) ? Inf : norm(xk .- x1k)^2 / norm(F_diff)^2
+        sk = min(ρ * s1k, ϕ * tk * ratio / (4 * s1k), χ_large)
         yk1 = ((ϕ - 1) .* xk .+ yk) ./ ϕ
-        xk1 = Π(yk1 .- sk .* F(xk, params...))
+        xk1 = Π(yk1 .- sk .* F(xk, params...), sk)
         tk1 = ϕ * sk / s1k
         return xk1, yk1, sk, tk1
     end
@@ -789,7 +869,7 @@ Hybrid golden ratio algorithm I
 # Description
 The HGRAAL-1 algorithm [baghbadorani2024hybrid](@cite) is a variation of the Adaptive 
 Golden Ratio Algorithm. 
-Let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/\\phi^2``, where ``\\phi \\in (0,\\varphi]`` 
+Let ``\\theta_0 = 1``, ``\\rho = 1/\\phi + 1/\\phi^2``, where ``\\phi \\in (1,\\varphi]`` 
 and ``\\varphi = \\frac{1+\\sqrt{5}}{2}`` is the golden ratio. 
 The residual at point ``\\mathbf{x}_k`` is given by ``J : \\mathbb{R}^n \\to \\mathbb{R}``, 
 defined as follows:
@@ -806,23 +886,22 @@ Given the initial terms ``\\mathbf{x}_0,\\mathbf{x}_1 \\in\\mathbb{R}^n``, ``\\m
 ```math 
 \\begin{align*}
     \\chi_k &= \\min\\left\\{\\rho\\chi_{k-1},
-        \\frac{\\phi\\theta_k \\|\\mathbf{x}_k
+        \\frac{\\phi\\theta_{k-1} \\|\\mathbf{x}_k
         -\\mathbf{x}_{k-1}\\|^2}{4\\chi_{k-1}\\|\\mathbf{F}(\\mathbf{x}_k)
         -\\mathbf{F}(\\mathbf{x}_{k-1})\\|^2}, \\bar{\\chi}\\right\\} \\\\
-    c_k &= \\left(\\langle J(\\mathbf{x}_k) - J(\\mathbf{x}_{k-1}) > 0 \\rangle 
-        \\text{ and } \\langle f_k \\rangle \\right) 
-        \\text{ or } \\left\\langle \\min\\{J(\\mathbf{x}_{k-1}), J(\\mathbf{x}_k)\\} < 
-        J(\\mathbf{x}_k) + \\frac{1}{\\bar{k}} \\right\\rangle \\\\
-    f_k &= \\text{not \$\\langle c_k \\rangle\$} \\\\
-    \\bar{k} &= \\begin{cases} \\bar{k}+1 & \\text{if \$c_k\$ is true} \\\\ 
-        \\bar{k} & \\text{otherwise} \\end{cases} \\\\
+    c_k &= \\left(J(\\mathbf{x}_k) - J(\\mathbf{x}_{k-1}) > 0 \\text{ and } f_k\\right) 
+        \\text{ or } \\left(\\min_{0 \\leq i < k} J(\\mathbf{x}_i) < 
+        J(\\mathbf{x}_k) + \\frac{1}{\\bar{k}}\\right) \\\\
+    f_{k+1} &= \\neg c_k \\\\
+    \\bar{k}_{k+1} &= \\begin{cases} \\bar{k}_k & \\text{if } c_k \\text{ is true} \\\\ 
+        \\bar{k}_k + 1 & \\text{otherwise} \\end{cases} \\\\
     \\mathbf{y}_{k+1} &= 
         \\begin{cases}
-            \\dfrac{(\\phi - 1)\\mathbf{x}_k + \\phi\\mathbf{y}_k}{\\phi} & 
-            \\text{if \$c_k\$ is true} \\\\
+            \\dfrac{(\\phi - 1)\\mathbf{x}_k + \\mathbf{y}_k}{\\phi} & 
+            \\text{if } c_k \\text{ is true} \\\\ 
             \\mathbf{x}_k & \\text{otherwise}
         \\end{cases} \\\\
-    \\mathbf{x}_{k+1} &= \\text{prox}_{g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi_k 
+    \\mathbf{x}_{k+1} &= \\text{prox}_{\\chi_k g,\\mathcal{S}}(\\mathbf{y}_{k+1} - \\chi_k 
         \\mathbf{F}(\\mathbf{x}_k)) \\\\
     \\theta_{k+1} &= \\phi\\frac{\\chi_k}{\\chi_{k-1}} 
 \\end{align*}
@@ -838,6 +917,7 @@ function hybrid_golden_ratio_algorithm_1(
 )
     Π = prox(g; y=y, model=model, norm_cone=norm_cone, analytical_prox=analytical_prox)
     flag = false
+    best_residual = Inf
     function iterate(
         xk::AbstractArray,
         x1k::AbstractArray,
@@ -851,14 +931,17 @@ function hybrid_golden_ratio_algorithm_1(
     )
         ρ = 1 / ϕ + 1 / ϕ^2
         F_diff = F(xk, params...) .- F(x1k, params...)
-        sk = min(ρ * s1k, ϕ * tk * norm(xk .- x1k) / (4 * s1k * norm(F_diff)), χ_large)
+        ratio = iszero(norm(F_diff)) ? Inf : norm(xk .- x1k)^2 / norm(F_diff)^2
+        sk = min(ρ * s1k, ϕ * tk * ratio / (4 * s1k), χ_large)
         Jk = residual(F, Π, xk, params...)
         J1k = residual(F, Π, x1k, params...)
-        condition = (Jk - J1k > 0 && flag) || (min(Jk, J1k) < Jk + 1 / ck)
-        yk1 = condition ? (ϕ - 1) .* xk .+ yk ./ ϕ : xk
-        flag = !flag
-        ck1 = condition ? ck + 1 : ck
-        xk1 = Π(yk1 .- sk .* F(xk, params...))
+        best_residual = min(best_residual, J1k)
+        condition = (Jk - J1k > 0 && flag) || (best_residual < Jk + 1 / ck)
+        yk1 = condition ? ((ϕ - 1) .* xk .+ yk) ./ ϕ : xk
+        flag = !condition
+        ck1 = condition ? ck : ck + 1
+        best_residual = min(best_residual, Jk)
+        xk1 = Π(yk1 .- sk .* F(xk, params...), sk)
         tk1 = ϕ * sk / s1k
         return xk1, yk1, sk, tk1, ck1
     end
